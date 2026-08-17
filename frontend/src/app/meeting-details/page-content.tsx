@@ -10,6 +10,7 @@ import { ParticipantsPanel } from "@/components/MeetingDetails/ParticipantsPanel
 import { EvidenceStatusPanel } from "@/components/MeetingDetails/EvidenceStatusPanel";
 import { AgentHandoffMenu } from "@/components/MeetingDetails/AgentHandoffMenu";
 import { ExternalTransferDialog } from "@/components/MeetingDetails/ExternalTransferDialog";
+import { SessionHeader } from "@/components/MeetingDetails/SessionHeader";
 import { useMeetingOperations } from "@/hooks/meeting-details/useMeetingOperations";
 import { useReviewRecord } from "@/hooks/meeting-details/useReviewRecord";
 import { useVerifiableRecord } from "@/hooks/meeting-details/useVerifiableRecord";
@@ -57,13 +58,25 @@ export default function PageContent({ meeting, onRefetchTranscripts, hasMore, is
   };
   const seek = (timestampMs: number) => { void audioPlayer.seekAndPlay(timestampMs / 1000); };
 
+  // Only trustworthy once every passage is loaded, otherwise it would report
+  // the duration of the loaded page instead of the Session.
+  const sessionDurationMs = hasMore
+    ? undefined
+    : meeting.transcripts.reduce((longest: number, transcript: Transcript) => Math.max(longest, (transcript.audio_end_time ?? 0) * 1000), 0) || undefined;
+
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }} className="flex h-screen flex-col bg-gray-50">
-      <header className="flex min-h-12 items-center justify-end gap-2 border-b border-gray-200 bg-white px-4">
+      <header className="flex min-h-12 items-center gap-4 border-b border-gray-200 bg-white px-4 py-2">
+        <SessionHeader
+          title={meeting.title}
+          createdAt={meeting.created_at}
+          passageCount={totalCount ?? meeting.transcripts.length}
+          durationMs={sessionDurationMs}
+        />
         <ExternalTransferDialog meetingId={meeting.id} disabled={Boolean(reviewRecord.state?.dirty)} />
         <AgentHandoffMenu meetingId={meeting.id} disabled={Boolean(reviewRecord.state?.dirty)} />
       </header>
-      <main className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto xl:grid-cols-[minmax(16rem,0.8fr)_minmax(28rem,1.8fr)_minmax(14rem,0.7fr)] xl:overflow-hidden">
+      <main className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(15rem,0.75fr)_minmax(24rem,1.8fr)_minmax(13rem,0.7fr)] lg:overflow-hidden">
         <section aria-label="Session findings" data-review-column="context" className="flex min-h-0 flex-col overflow-hidden bg-white">
           <SummaryPanel record={findings.record} loadError={findings.error} hasUnsavedTranscript={Boolean(reviewRecord.state?.dirty)} onSelectType={(type) => void findings.selectType(type)} onGenerate={() => void findings.generate()} onCancel={() => void findings.cancel()} onSeek={seek} />
           {reviewRecord.state && <ParticipantsPanel state={reviewRecord.state} dispatch={reviewRecord.dispatch} />}

@@ -105,8 +105,8 @@ export function RecordingStateProvider({ children }: { children: React.ReactNode
         activeDuration: backendState.active_duration,
         microphoneLevel: backendState.microphone_level,
         systemAudioLevel: backendState.system_audio_level,
-        microphoneStatus: backendState.microphone_status,
-        systemAudioStatus: backendState.system_audio_status,
+        microphoneStatus: backendState.microphone_status ?? prev.microphoneStatus,
+        systemAudioStatus: backendState.system_audio_status ?? prev.systemAudioStatus,
       }));
 
       console.log('[RecordingStateContext] Synced with backend:', backendState);

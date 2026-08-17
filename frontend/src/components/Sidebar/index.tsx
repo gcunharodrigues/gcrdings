@@ -460,6 +460,8 @@ const Sidebar: React.FC = () => {
             <TooltipTrigger asChild>
               <button
                 onClick={() => navigate('/')}
+                aria-label="Home"
+                aria-current={isHomePage ? 'page' : undefined}
                 className={`p-2 rounded-lg transition-colors duration-150 ${isHomePage ? 'bg-gray-100' : 'hover:bg-gray-100'
                   }`}
               >
@@ -476,6 +478,7 @@ const Sidebar: React.FC = () => {
               <button
                 onClick={handleRecordingToggle}
                 disabled={isRecording}
+                aria-label={isRecording ? 'Recording in progress' : 'Start Recording'}
                 className={`p-2 ${isRecording ? 'bg-red-500 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'} rounded-full transition-colors duration-150 shadow-sm`}
               >
                 {isRecording ? (
@@ -494,6 +497,7 @@ const Sidebar: React.FC = () => {
               <TooltipTrigger asChild>
                 <button
                   onClick={() => openImportDialog()}
+                  aria-label="Import Media"
                   className="p-2 rounded-lg transition-colors duration-150 hover:bg-blue-100 bg-blue-50"
                 >
                   <Upload className="w-5 h-5 text-blue-600" />
@@ -511,6 +515,8 @@ const Sidebar: React.FC = () => {
                   if (isCollapsed) toggleCollapse();
                   toggleFolder('meetings');
                 }}
+                aria-label="Meeting Notes"
+                aria-current={isMeetingPage ? 'page' : undefined}
                 className={`p-2 rounded-lg transition-colors duration-150 ${isMeetingPage ? 'bg-gray-100' : 'hover:bg-gray-100'
                   }`}
               >
@@ -526,6 +532,8 @@ const Sidebar: React.FC = () => {
             <TooltipTrigger asChild>
               <button
                 onClick={() => navigate('/settings')}
+                aria-label="Settings"
+                aria-current={isSettingsPage ? 'page' : undefined}
                 className={`p-2 rounded-lg transition-colors duration-150 ${isSettingsPage ? 'bg-gray-100' : 'hover:bg-gray-100'
                   }`}
               >
@@ -575,8 +583,7 @@ const Sidebar: React.FC = () => {
             if (item.type === 'folder') {
               toggleFolder(item.id);
             } else {
-              const basePath = item.id.startsWith('intro-call') ? '/' :
-                item.id.includes('-') ? `/meeting-details?id=${item.id}` : `/notes/${item.id}`;
+              const basePath = item.id.startsWith('intro-call') ? '/' : `/meeting-details?id=${item.id}`;
               if (navigate(basePath)) setCurrentMeeting({ id: item.id, title: item.title });
             }
           }}
@@ -662,6 +669,8 @@ const Sidebar: React.FC = () => {
       {/* Floating collapse button */}
       <button
         onClick={toggleCollapse}
+        aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        aria-expanded={!isCollapsed}
         className="absolute -right-6 top-20 z-50 p-1 bg-white hover:bg-gray-100 rounded-full shadow-lg border"
         style={{ transform: 'translateX(50%)' }}
       >

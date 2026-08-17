@@ -35,6 +35,21 @@ interface RecordingControlsProps {
   };
 }
 
+type AudioSourceStatus = 'waiting' | 'storing' | 'lost' | 'failed';
+
+const SOURCE_STATUS_LABELS: Record<AudioSourceStatus, string> = {
+  waiting: 'Waiting',
+  storing: 'Recording',
+  lost: 'Signal lost',
+  failed: 'Failed',
+};
+
+function sourceStatusLabel(status: AudioSourceStatus | undefined, level: number): string {
+  if (!status) return SOURCE_STATUS_LABELS.waiting;
+  if (status === 'storing' && level < 0.0001) return 'Silent';
+  return SOURCE_STATUS_LABELS[status] ?? SOURCE_STATUS_LABELS.waiting;
+}
+
 export const RecordingControls: React.FC<RecordingControlsProps> = ({
   isRecording,
   audioLevels,
@@ -482,7 +497,7 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
                     ].filter(([, , , enabled]) => enabled).map(([label, level, status]) => (
                       <div key={label as string} className="flex items-center gap-1">
                         <span>
-                          {label} · {status === 'storing' && Number(level) < 0.0001 ? 'Silent' : String(status)}
+                          {label} · {sourceStatusLabel(status as AudioSourceStatus | undefined, Number(level))}
                         </span>
                         <div className="h-1.5 w-10 overflow-hidden rounded-full bg-gray-200">
                           <div
