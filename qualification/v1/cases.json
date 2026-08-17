@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "contract_id": "gcrdings-v1-release-qualification",
+  "base_commit": "1e7f95075def6b0a6803e469186d2114c95456b5",
+  "release_candidate": "a067c8e8769597a89075aa0d48c0218bbc8296d1",
+  "runtime_candidate": "4c76cd675cf9a78339c20912996bcd957e25dc75",
+  "release_identity": "gcrdings-0.4.0-aarch64-local-adhoc",
+  "distribution": {
+    "mode": "local_adhoc",
+    "public_notarized": "unsatisfied"
+  },
+  "current_state": {
+    "required_cases": "passed",
+    "public_notarized": "unsatisfied"
+  },
+  "target": {
+    "model": "Mac15,12",
+    "chip": "Apple M3",
+    "memory": "24 GiB",
+    "arch": "arm64",
+    "os": "macOS-26.5.2",
+    "build": "25F84"
+  },
+  "versions": {
+    "app": "0.4.0",
+    "rust": "1.97.1",
+    "node": "22.23.1",
+    "pnpm": "10.34.5",
+    "foundation_helper": "foundation-helper-v1",
+    "transcription": "parakeet-tdt-0.6b-v3-int8",
+    "diarization": "FluidAudio-0.14.1-models-1ed7a662"
+  },
+  "artifacts": [
+    {
+      "id": "application",
+      "path": "release/bundle/macos/gcrdings.app/Contents/MacOS/gcrdings",
+      "candidate_marker": "gcrdings-build-commit:"
+    },
+    {
+      "id": "installer",
+      "path": "release/bundle/dmg/gcrdings_0.4.0_aarch64.dmg"
+    }
+  ],
+  "locks": [
+    { "id": "cargo_lock", "path": "Cargo.lock" },
+    { "id": "pnpm_lock", "path": "frontend/pnpm-lock.yaml" }
+  ],
+  "prior_receipts": [
+    { "id": "imported_audio", "path": "qualification/audio-corpus/results/target-mac.json" },
+    { "id": "captured_timeline", "path": "qualification/captured-timeline/target-mac.json" },
+    { "id": "local_findings", "path": "qualification/local-findings/target-mac.json" },
+    { "id": "agent_handoff", "path": "qualification/agent-handoff/target-mac.json" },
+    { "id": "provider_authorization", "path": "qualification/provider-authorization/target-mac.json" }
+  ],
+  "evidence_files": [
+    { "id": "capture_30m", "path": "qualification/v1/evidence/capture-30m-4c76cd6.json", "kind": "workload", "mode": "capture", "candidate_commit": "4c76cd675cf9a78339c20912996bcd957e25dc75" },
+    { "id": "import_30m", "path": "qualification/v1/evidence/import-30m-4c76cd6.json", "kind": "workload", "mode": "import", "candidate_commit": "4c76cd675cf9a78339c20912996bcd957e25dc75" },
+    { "id": "release_package_manifest", "path": "qualification/v1/evidence/release-package-manifest-a067c8e.json", "kind": "package", "candidate_commit": "a067c8e8769597a89075aa0d48c0218bbc8296d1" },
+    { "id": "install_clean", "path": "qualification/v1/evidence/install-clean-a067c8e.json", "kind": "install", "case": "install-clean", "candidate_commit": "a067c8e8769597a89075aa0d48c0218bbc8296d1" },
+    { "id": "install_existing", "path": "qualification/v1/evidence/install-existing-a067c8e.json", "kind": "install", "case": "install-existing", "candidate_commit": "a067c8e8769597a89075aa0d48c0218bbc8296d1" },
+    { "id": "rollback", "path": "qualification/v1/evidence/rollback-a067c8e.json", "kind": "install", "case": "rollback", "candidate_commit": "a067c8e8769597a89075aa0d48c0218bbc8296d1" },
+    { "id": "rollback_interrupted", "path": "qualification/v1/evidence/rollback-interrupted-a067c8e.json", "kind": "install", "case": "rollback-interrupted", "candidate_commit": "a067c8e8769597a89075aa0d48c0218bbc8296d1" }
+  ],
+  "thresholds": {
+    "capture_duration_seconds": 1800,
+    "import_duration_seconds": 1800,
+    "maximum_startup_ms": 15000,
+    "maximum_graceful_shutdown_ms": 5000,
+    "maximum_10000_block_render_ms": 5000,
+    "maximum_10000_block_interaction_p95_ms": 200,
+    "maximum_rss_growth_mib": 512,
+    "maximum_import_peak_mb": 1970,
+    "maximum_seek_error_ms": 100,
+    "forbidden_thermal_states": ["serious", "critical"],
+    "maximum_unapproved_network_requests": 0,
+    "maximum_diagnostic_private_matches": 0,
+    "maximum_safety_failures": 0
+  },
+  "energy_proxy": {
+    "executable": "/usr/bin/top",
+    "arguments": ["-l", "1", "-pid", "<app-pid>", "-stats", "pid,cpu,mem,power"],
+    "field": "POWER",
+    "cadence_seconds": 5,
+    "workload_seconds": 1800,
+    "expected_samples": 360,
+    "minimum_samples": 342,
+    "aggregation": "arithmetic_mean_and_nearest_rank_p95",
+    "maximum_mean_power": 500,
+    "maximum_p95_power": 1000
+  },
+  "cases": [
+    { "id": "capture_30_min", "category": "performance", "command": "native:record-live-30m", "expected_code": "capture_30m_completed", "required_status": "passed" },
+    { "id": "import_30_min", "category": "performance", "command": "native:import-audio-30m", "expected_code": "import_30m_completed", "required_status": "passed" },
+    { "id": "startup_cold", "category": "performance", "command": "native:launch-packaged-app", "expected_code": "startup_within_15000ms", "required_status": "passed" },
+    { "id": "shutdown_graceful", "category": "performance", "command": "native:quit-packaged-app", "expected_code": "shutdown_within_5000ms", "required_status": "passed" },
+    { "id": "session_10000_render", "category": "boundary", "command": "native:open-10000-block-session", "expected_code": "render_within_5000ms", "required_status": "passed" },
+    { "id": "session_10000_interaction", "category": "boundary", "command": "native:exercise-10000-block-session", "expected_code": "interaction_p95_within_200ms", "required_status": "passed" },
+    { "id": "live_capture_rss", "category": "performance", "command": "native:sample-live-capture-rss", "expected_code": "rss_growth_within_512mib", "required_status": "passed" },
+    { "id": "import_rss", "category": "performance", "command": "native:sample-import-rss", "expected_code": "rss_growth_within_512mib", "required_status": "passed" },
+    { "id": "import_peak", "category": "performance", "command": "native:sample-import-peak", "expected_code": "import_peak_within_1970mb", "required_status": "passed" },
+    { "id": "capture_thermal", "category": "performance", "command": "native:observe-capture-thermal", "expected_code": "thermal_never_serious_or_critical", "required_status": "passed" },
+    { "id": "import_thermal", "category": "performance", "command": "native:observe-import-thermal", "expected_code": "thermal_never_serious_or_critical", "required_status": "passed" },
+    { "id": "capture_energy", "category": "performance", "command": "native:sample-capture-top-power", "expected_code": "power_proxy_within_fixed_ceiling", "required_status": "passed" },
+    { "id": "import_energy", "category": "performance", "command": "native:sample-import-top-power", "expected_code": "power_proxy_within_fixed_ceiling", "required_status": "passed" },
+    { "id": "live_primary_workflow", "category": "normal", "command": "ui:live-capture-to-agent-handoff", "expected_code": "live_workflow_completed", "required_status": "passed" },
+    { "id": "import_primary_workflow", "category": "normal", "command": "ui:import-to-agent-handoff", "expected_code": "import_workflow_completed", "required_status": "passed" },
+    { "id": "correction_evidence_seek", "category": "normal", "command": "ui:correct-and-seek-evidence", "expected_code": "current_evidence_seek_within_100ms", "required_status": "passed" },
+    { "id": "findings_three_types", "category": "normal", "command": "ui:generate-meeting-interview-content", "expected_code": "three_grounded_record_types_completed", "required_status": "passed" },
+    { "id": "handoff_equivalence", "category": "normal", "command": "ui:save-markdown-and-json", "expected_code": "handoff_semantically_equivalent", "required_status": "passed" },
+    { "id": "provider_cancel", "category": "cancellation", "command": "ui:cancel-provider-confirmation", "expected_code": "provider_cancel_zero_send", "required_status": "passed" },
+    { "id": "provider_exact_send", "category": "normal", "command": "ui:confirm-provider-once", "expected_code": "provider_exactly_one_send", "required_status": "passed" },
+    { "id": "provider_failure", "category": "failure", "command": "native:provider-failure-no-auto-retry", "expected_code": "provider_failure_typed_no_retry", "required_status": "passed" },
+    { "id": "duplicate_processing", "category": "concurrency", "command": "native:start-processing-twice", "expected_code": "duplicate_start_rejected", "required_status": "passed" },
+    { "id": "abrupt_restart", "category": "restart", "command": "native:interrupt-and-relaunch", "expected_code": "interrupted_state_recovered", "required_status": "passed" },
+    { "id": "source_loss_retry", "category": "failure", "command": "native:remove-origin-and-retry", "expected_code": "source_loss_preserved_and_retry_safe", "required_status": "passed" },
+    { "id": "disk_full_processing", "category": "failure", "command": "native:simulate-processing-disk-full", "expected_code": "processing_disk_full_preserved", "required_status": "passed" },
+    { "id": "disk_full_export", "category": "failure", "command": "native:simulate-export-disk-full", "expected_code": "export_disk_full_cleaned", "required_status": "passed" },
+    { "id": "model_unavailable", "category": "failure", "command": "native:disable-local-model", "expected_code": "model_unavailable_no_fallback", "required_status": "passed" },
+    { "id": "invalid_local_output", "category": "failure", "command": "native:return-invalid-local-output", "expected_code": "invalid_output_rejected", "required_status": "passed" },
+    { "id": "local_network_observation", "category": "privacy", "command": "native:observe-local-workflow-sockets", "expected_code": "zero_unapproved_network_requests", "required_status": "passed" },
+    { "id": "diagnostic_privacy_scan", "category": "privacy", "command": "native:scan-diagnostics-and-temp", "expected_code": "zero_private_matches", "required_status": "passed" },
+    { "id": "package_closed_allowlist", "category": "packaging", "command": "shell:scripts/verify-release-package.sh", "expected_code": "package_allowlist_closed", "required_status": "passed" },
+    { "id": "package_builder_path_scan", "category": "packaging", "command": "shell:scripts/verify-release-package.sh", "expected_code": "builder_paths_absent", "required_status": "passed" },
+    { "id": "package_legal_provenance", "category": "packaging", "command": "shell:scripts/verify-release-package.sh", "expected_code": "legal_provenance_complete", "required_status": "passed" },
+    { "id": "package_local_adhoc_signature", "category": "packaging", "command": "shell:codesign --verify --deep --strict", "expected_code": "local_adhoc_signature_valid", "required_status": "passed" },
+    { "id": "install_clean", "category": "install", "command": "shell:scripts/qualify-local-adhoc-install.sh install-clean", "expected_code": "clean_install_launched", "required_status": "passed" },
+    { "id": "install_existing_data", "category": "install", "command": "shell:scripts/qualify-local-adhoc-install.sh install-existing", "expected_code": "existing_data_preserved", "required_status": "passed" },
+    { "id": "rollback_snapshot", "category": "rollback", "command": "shell:scripts/qualify-local-adhoc-install.sh rollback", "expected_code": "snapshot_restored_exactly", "required_status": "passed" },
+    { "id": "rollback_interrupted_retry", "category": "rollback", "command": "shell:scripts/qualify-local-adhoc-install.sh rollback-interrupted", "expected_code": "rollback_retry_completed", "required_status": "passed" },
+    { "id": "keyboard_accessibility", "category": "accessibility", "command": "ui:keyboard-only-release-flow", "expected_code": "keyboard_flow_completed", "required_status": "passed" },
+    { "id": "no_terminal_user_flow", "category": "accessibility", "command": "ui:no-terminal-primary-workflows", "expected_code": "no_terminal_flow_completed", "required_status": "passed" },
+    { "id": "public_notarized", "category": "conditional", "command": "conditional:public-notarized-distribution", "expected_code": "public_notarization_not_configured", "required_status": "unsatisfied" }
+  ]
+}

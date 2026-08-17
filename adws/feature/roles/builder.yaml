@@ -1,0 +1,16 @@
+# Builders are the workhorse tier; the gauntlet catches what they miss.
+# The pin-holes below let the builder RUN the repo's own gauntlet commands
+# (nothing else) — a blind builder does not converge on integration work.
+tier: workhorse
+effort: high
+allowed_tools:
+  - "Bash(cargo test --workspace --locked && pnpm --dir frontend exec bun test tests/lib)"
+  - "Bash(cargo test --workspace --locked && pnpm --dir frontend exec bun test tests/lib:*)"
+  - "Bash(cargo fmt --all --check && cargo clippy --workspace --all-targets --locked -- -D warnings && pnpm --dir frontend lint)"
+  - "Bash(cargo fmt --all --check && cargo clippy --workspace --all-targets --locked -- -D warnings && pnpm --dir frontend lint:*)"
+  - "Bash(cargo check --workspace --all-targets --locked && pnpm --dir frontend exec tsc --noEmit && pnpm --dir frontend build)"
+  - "Bash(cargo check --workspace --all-targets --locked && pnpm --dir frontend exec tsc --noEmit && pnpm --dir frontend build:*)"
+  - "Bash(cargo audit && pnpm --dir frontend audit --audit-level high)"
+  - "Bash(cargo audit && pnpm --dir frontend audit --audit-level high:*)"
+  - "Bash(./scripts/bootstrap-dev.sh && pnpm --dir frontend install --frozen-lockfile && cargo fetch --locked)"
+  - "Bash(./scripts/bootstrap-dev.sh && pnpm --dir frontend install --frozen-lockfile && cargo fetch --locked:*)"

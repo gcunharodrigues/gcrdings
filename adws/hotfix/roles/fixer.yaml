@@ -1,0 +1,9 @@
+tier: workhorse
+effort: medium
+allowed_tools:
+  - "Bash(cargo test --workspace --locked --lib && pnpm --dir frontend exec bun test tests/lib)"
+  - "Bash(cargo test --workspace --locked --lib && pnpm --dir frontend exec bun test tests/lib:*)"
+  - "Bash(cargo audit && pnpm --dir frontend audit --audit-level high)"
+  - "Bash(cargo audit && pnpm --dir frontend audit --audit-level high:*)"
+  - "Bash(./scripts/bootstrap-dev.sh && pnpm --dir frontend install --frozen-lockfile && cargo fetch --locked)"
+  - "Bash(./scripts/bootstrap-dev.sh && pnpm --dir frontend install --frozen-lockfile && cargo fetch --locked:*)"

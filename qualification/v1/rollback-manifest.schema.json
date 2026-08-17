@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gcrdings.local/schemas/v1-rollback-manifest.json",
+  "title": "gcrdings local_adhoc rollback evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "distribution_mode", "candidate_commit", "package", "case", "status", "code", "recovery", "snapshot", "restored", "cleanup"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "distribution_mode": { "const": "local_adhoc" },
+    "candidate_commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "package": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manifest_sha256", "application_sha256", "application_manifest_sha256", "dmg_sha256"],
+      "properties": {
+        "manifest_sha256": { "$ref": "#/$defs/digest" },
+        "application_sha256": { "$ref": "#/$defs/digest" },
+        "application_manifest_sha256": { "$ref": "#/$defs/digest" },
+        "dmg_sha256": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "case": { "enum": ["install-clean", "install-existing", "rollback", "rollback-interrupted"] },
+    "status": { "const": "passed" },
+    "code": { "enum": ["clean_install_launched", "existing_data_preserved", "snapshot_restored_exactly", "rollback_retry_completed"] },
+    "recovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["occurred", "candidate_commit"],
+      "properties": {
+        "occurred": { "type": "boolean" },
+        "candidate_commit": { "oneOf": [{ "$ref": "#/$defs/commit" }, { "type": "null" }] }
+      }
+    },
+    "snapshot": { "$ref": "#/$defs/state" },
+    "restored": { "$ref": "#/$defs/restoredState" },
+    "cleanup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mounted_images", "candidate_processes", "helper_processes", "listeners", "temporary_keychains", "temporary_artifacts", "pending_journals", "process_group_members_observed", "process_group_listeners_observed"],
+      "properties": {
+        "mounted_images": { "$ref": "#/$defs/countComparison" },
+        "candidate_processes": { "$ref": "#/$defs/countComparison" },
+        "helper_processes": { "$ref": "#/$defs/countComparison" },
+        "listeners": { "$ref": "#/$defs/countComparison" },
+        "temporary_keychains": { "$ref": "#/$defs/countComparison" },
+        "temporary_artifacts": { "$ref": "#/$defs/countComparison" },
+        "pending_journals": { "$ref": "#/$defs/countComparison" },
+        "process_group_members_observed": { "type": "integer", "minimum": 1 },
+        "process_group_listeners_observed": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "$defs": {
+    "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "countComparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["before", "after"],
+      "properties": {
+        "before": { "type": "integer", "minimum": 0 },
+        "after": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "restoredState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["application_sha256", "data_sha256", "database_integrity", "keychain_configuration_sha256"],
+      "properties": {
+        "application_sha256": { "$ref": "#/$defs/digest" },
+        "data_sha256": { "$ref": "#/$defs/digest" },
+        "database_integrity": { "const": "ok" },
+        "keychain_configuration_sha256": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["application_sha256", "data_sha256", "database_integrity", "keychain_configuration_sha256"],
+      "properties": {
+        "application_sha256": { "$ref": "#/$defs/digest" },
+        "data_sha256": { "$ref": "#/$defs/digest" },
+        "database_integrity": { "const": "ok" },
+        "keychain_configuration_sha256": { "$ref": "#/$defs/digest" }
+      }
+    }
+  }
+}

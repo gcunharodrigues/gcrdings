@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "corpus_id": "gcrdings-private-audio-v1",
+  "privacy": {
+    "classification": "synthetic_private_safe",
+    "generated_audio_committed": false,
+    "private_recordings_allowed": false
+  },
+  "generation": {
+    "platform": "macos",
+    "synthesizer": "/usr/bin/say",
+    "sample_rate_hz": 16000,
+    "sample_format": "signed_16_bit_little_endian",
+    "speech_rate_words_per_minute": 180,
+    "voices": {
+      "pt_BR": "Luciana",
+      "pt_PT": "Joana",
+      "en_US": "Samantha",
+      "en_US_male": "Reed (English (US))",
+      "pt_BR_older": "Grandpa (Portuguese (Brazil))"
+    }
+  },
+  "threshold_policy": {
+    "minimum_baseline_runs": 1,
+    "maximum_word_error_rate": {
+      "margin": 0.05,
+      "absolute_ceiling": 0.4
+    },
+    "minimum_speaker_count_accuracy": {
+      "margin": 0.05,
+      "absolute_floor": 0.75
+    },
+    "maximum_realtime_factor": {
+      "multiplier": 1.25,
+      "absolute_ceiling": 2
+    },
+    "maximum_peak_memory_mb": {
+      "multiplier": 1.25,
+      "absolute_ceiling": 4096
+    }
+  },
+  "samples": [
+    {
+      "id": "portuguese_clear",
+      "category": "portuguese",
+      "expected_text": "A equipe confirmou o prazo e revisou os próximos passos.",
+      "expected_speaker_count": 1,
+      "sources": [
+        {
+          "voice": "pt_BR",
+          "text": "A equipe confirmou o prazo e revisou os próximos passos.",
+          "start_ms": 0,
+          "gain": 1
+        }
+      ]
+    },
+    {
+      "id": "english_clear",
+      "category": "english",
+      "expected_text": "The team confirmed the deadline and reviewed the next steps.",
+      "expected_speaker_count": 1,
+      "sources": [
+        {
+          "voice": "en_US",
+          "text": "The team confirmed the deadline and reviewed the next steps.",
+          "start_ms": 0,
+          "gain": 1
+        }
+      ]
+    },
+    {
+      "id": "code_switch_clear",
+      "category": "code_switch",
+      "expected_text": "Vamos revisar o release plan antes da próxima reunião.",
+      "expected_speaker_count": 1,
+      "sources": [
+        {
+          "voice": "pt_BR",
+          "text": "Vamos revisar o release plan antes da próxima reunião.",
+          "start_ms": 0,
+          "gain": 1
+        }
+      ]
+    },
+    {
+      "id": "portuguese_noise",
+      "category": "noise",
+      "expected_text": "A equipe confirmou o prazo e revisou os próximos passos.",
+      "expected_speaker_count": 1,
+      "noise_amplitude": 700,
+      "sources": [
+        {
+          "voice": "pt_BR",
+          "text": "A equipe confirmou o prazo e revisou os próximos passos.",
+          "start_ms": 0,
+          "gain": 0.85
+        }
+      ]
+    },
+    {
+      "id": "two_speaker_overlap",
+      "category": "overlap",
+      "expected_text": "A equipe confirmou o prazo do projeto, revisou todos os próximos passos e registrou as decisões importantes para a reunião. The engineering team confirmed the project deadline, reviewed every next step, and recorded the important decisions for the meeting.",
+      "expected_speaker_count": 2,
+      "expected_overlap": true,
+      "sources": [
+        {
+          "voice": "pt_BR",
+          "text": "A equipe confirmou o prazo do projeto, revisou todos os próximos passos e registrou as decisões importantes para a reunião.",
+          "start_ms": 0,
+          "gain": 1
+        },
+        {
+          "voice": "en_US_male",
+          "text": "The engineering team confirmed the project deadline, reviewed every next step, and recorded the important decisions for the meeting.",
+          "start_ms": 7500,
+          "gain": 1
+        }
+      ]
+    },
+    {
+      "id": "three_speaker_sequence",
+      "category": "multi_speaker",
+      "expected_text": "A equipe confirmou o prazo do projeto, revisou todos os próximos passos e registrou as decisões importantes para a reunião. The engineering team confirmed the project deadline, reviewed every next step, and recorded the important decisions for the meeting. O terceiro participante verificou o cronograma, explicou os riscos principais e confirmou a próxima reunião com toda a equipe.",
+      "expected_speaker_count": 3,
+      "sources": [
+        {
+          "voice": "pt_BR",
+          "text": "A equipe confirmou o prazo do projeto, revisou todos os próximos passos e registrou as decisões importantes para a reunião.",
+          "start_ms": 0,
+          "gain": 1
+        },
+        {
+          "voice": "en_US_male",
+          "text": "The engineering team confirmed the project deadline, reviewed every next step, and recorded the important decisions for the meeting.",
+          "start_ms": 9000,
+          "gain": 1
+        },
+        {
+          "voice": "pt_BR_older",
+          "text": "O terceiro participante verificou o cronograma, explicou os riscos principais e confirmou a próxima reunião com toda a equipe.",
+          "start_ms": 18000,
+          "gain": 1
+        }
+      ]
+    },
+    {
+      "id": "long_form_repeat",
+      "category": "long_form",
+      "expected_text": "A equipe confirmou o prazo e revisou os próximos passos.",
+      "expected_speaker_count": 1,
+      "measure_word_error_rate": false,
+      "repeat_to_seconds": 120,
+      "sources": [
+        {
+          "voice": "pt_BR",
+          "text": "A equipe confirmou o prazo e revisou os próximos passos.",
+          "start_ms": 0,
+          "gain": 1
+        }
+      ]
+    },
+    {
+      "id": "silence_boundary",
+      "category": "silence_boundary",
+      "expected_text": "",
+      "expected_speaker_count": 0,
+      "duration_seconds": 2,
+      "sources": []
+    }
+  ],
+  "failure_cases": [
+    {
+      "id": "missing_audio",
+      "expected_error": "audio_missing",
+      "retry_safe": true
+    },
+    {
+      "id": "malformed_transcript",
+      "expected_error": "invalid_transcript_output",
+      "retry_safe": true
+    },
+    {
+      "id": "model_failure",
+      "expected_error": "model_unavailable",
+      "retry_safe": true
+    },
+    {
+      "id": "interrupted_run",
+      "expected_error": "processing_interrupted",
+      "retry_safe": true
+    }
+  ]
+}

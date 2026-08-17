@@ -1,0 +1,25 @@
+name: hotfix
+entry: claim
+nodes:
+  - {id: claim, kind: code, cmd: gates/claim_ticket.sh}
+  - {id: scout, kind: agent, role: scout, prompt: prompts/scout.md}
+  - {id: approve, kind: human-gate}
+  - {id: fix, kind: agent, role: fixer, prompt: prompts/fix.md}
+  - {id: smoke, kind: code, cmd: gates/smoke.sh}
+  - {id: review-code, kind: agent, role: reviewer, prompt: prompts/review.md}
+  - {id: verdict, kind: code, cmd: gates/verdict.sh}
+  - {id: review, kind: human-gate}
+  - {id: land, kind: code, cmd: gates/land.sh}
+edges:
+  - {from: claim, to: scout, on: ok}
+  - {from: scout, to: approve, on: ok}
+  - {from: approve, to: scout, on: reject}
+  - {from: approve, to: fix, on: ok}
+  - {from: fix, to: smoke, on: ok}
+  - {from: smoke, to: fix, on: fail, max_retries: 3}
+  - {from: smoke, to: review-code, on: ok}
+  - {from: review-code, to: verdict, on: ok}
+  - {from: verdict, to: fix, on: fail, max_retries: 2}
+  - {from: verdict, to: review, on: ok}
+  - {from: review, to: fix, on: reject}
+  - {from: review, to: land, on: ok}

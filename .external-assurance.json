@@ -1,0 +1,23 @@
+{
+  "artifacts": [],
+  "baseline": {
+    "asvs": "5.0.0",
+    "catalog": "elo-external-assurance-v2",
+    "osps": "v2026.02.19",
+    "public_repository": "elo-public-repository-v1",
+    "slsa": "v1.2"
+  },
+  "distribution_intent": {
+    "artifact_access": "local",
+    "build_authority": "collaborator",
+    "channels": ["github_public"],
+    "platforms": ["macos"],
+    "source_access": "public_open_source",
+    "update_mechanism": "none"
+  },
+  "external_candidate": true,
+  "github_repository": "gcunharodrigues/gcrdings",
+  "markers": ["open_source", "public_repository"],
+  "project": "gcrdings",
+  "schema_version": 2
+}

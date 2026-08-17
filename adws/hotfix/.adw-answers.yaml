@@ -1,0 +1,7 @@
+template: hotfix
+vars:
+  INSTALL_CMD: ./scripts/bootstrap-dev.sh && pnpm --dir frontend install --frozen-lockfile
+    && cargo fetch --locked
+  SMOKE_CMD: cargo test --workspace --locked --lib && pnpm --dir frontend exec bun
+    test tests/lib
+  SECURITY_CMD: cargo audit && pnpm --dir frontend audit --audit-level high

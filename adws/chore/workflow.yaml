@@ -1,0 +1,25 @@
+name: chore
+entry: claim
+nodes:
+  - {id: claim, kind: code, cmd: gates/claim_ticket.sh}
+  - {id: build, kind: agent, role: hand, prompt: prompts/build.md}
+  - {id: gauntlet, kind: code, cmd: gates/gauntlet.sh}
+  - {id: review-code, kind: agent, role: reviewer, prompt: prompts/review.md}
+  - {id: verdict, kind: code, cmd: gates/verdict.sh}
+  - {id: review-security, kind: agent, role: security_reviewer, prompt: prompts/review-security.md}
+  - {id: verdict-security, kind: code, cmd: gates/verdict.sh}
+  - {id: review, kind: human-gate}
+  - {id: land, kind: code, cmd: gates/land.sh}
+edges:
+  - {from: claim, to: build, on: ok}
+  - {from: build, to: gauntlet, on: ok}
+  - {from: gauntlet, to: build, on: fail, max_retries: 3}
+  - {from: gauntlet, to: review-code, on: ok}
+  - {from: review-code, to: verdict, on: ok}
+  - {from: verdict, to: build, on: fail, max_retries: 2}
+  - {from: verdict, to: review-security, on: ok}
+  - {from: review-security, to: verdict-security, on: ok}
+  - {from: verdict-security, to: build, on: fail, max_retries: 2}
+  - {from: verdict-security, to: review, on: ok}
+  - {from: review, to: build, on: reject}
+  - {from: review, to: land, on: ok}

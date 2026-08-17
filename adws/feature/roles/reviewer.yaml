@@ -1,0 +1,11 @@
+# The last line of defense before the human gate: Guilherme reviews designs
+# and acceptance, NOT code — so the code judgment is this role's whole job.
+# SOTA on purpose: a reviewer miss is the expensive miss.
+tier: sota
+effort: high
+allowed_tools:
+  - "Bash(git status)"
+  - "Bash(git status:*)"
+  - "Bash(git diff)"
+  - "Bash(git diff:*)"
+  - "Bash(git log:*)"

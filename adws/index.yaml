@@ -1,0 +1,13 @@
+adws:
+- name: feature
+  dir: adws/feature
+  trigger: 'an unblocked `feature` ticket exists in .scratch/tickets/ — run: python3
+    ~/.agents/adw/runner.py run adws/feature'
+- name: chore
+  dir: adws/chore
+  trigger: 'an unblocked `chore` ticket exists in .scratch/tickets/ — run: python3
+    ~/.agents/adw/runner.py run adws/chore'
+- name: hotfix
+  dir: adws/hotfix
+  trigger: 'PRODUCTION IS DOWN and an unblocked `hotfix` ticket exists — run: python3
+    ~/.agents/adw/runner.py run adws/hotfix'

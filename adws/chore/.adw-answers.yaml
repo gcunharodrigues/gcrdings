@@ -1,0 +1,8 @@
+template: chore
+vars:
+  INSTALL_CMD: ./scripts/bootstrap-dev.sh && pnpm --dir frontend install --frozen-lockfile
+    && cargo fetch --locked
+  TEST_CMD: cargo test --workspace --locked && pnpm --dir frontend exec bun test tests/lib
+  LINT_CMD: cargo fmt --all --check && cargo clippy --workspace --all-targets --locked
+    -- -D warnings && pnpm --dir frontend lint
+  SECURITY_CMD: cargo audit && pnpm --dir frontend audit --audit-level high

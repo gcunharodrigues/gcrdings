@@ -1,0 +1,10 @@
+# Chore reviewer: workhorse — the change is small by definition, but it still
+# gets the same correctness/KISS/security lens before the human gate.
+tier: workhorse
+effort: medium
+allowed_tools:
+  - "Bash(git status)"
+  - "Bash(git status:*)"
+  - "Bash(git diff)"
+  - "Bash(git diff:*)"
+  - "Bash(git log:*)"

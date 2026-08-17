@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "owner": "human:guilherme",
+  "reviewed_on": "2026-08-16",
+  "expires_on": "2026-09-30",
+  "reviews": [
+    {
+      "kind": "unmaintained",
+      "advisory_id": "RUSTSEC-2024-0375",
+      "package": "atty",
+      "version": "0.2.14",
+      "rationale": "Transitive through nnnoiseless and clap 3; the advisory reports maintenance status, not a vulnerability. Replace with the upstream dependency update."
+    },
+    {
+      "kind": "unmaintained",
+      "advisory_id": "RUSTSEC-2025-0081",
+      "package": "unic-char-property",
+      "version": "0.9.0",
+      "rationale": "Transitive through Tauri urlpattern; the advisory reports maintenance status, not a vulnerability. Replace with the upstream Tauri dependency update."
+    },
+    {
+      "kind": "unmaintained",
+      "advisory_id": "RUSTSEC-2025-0075",
+      "package": "unic-char-range",
+      "version": "0.9.0",
+      "rationale": "Transitive through Tauri urlpattern; the advisory reports maintenance status, not a vulnerability. Replace with the upstream Tauri dependency update."
+    },
+    {
+      "kind": "unmaintained",
+      "advisory_id": "RUSTSEC-2025-0080",
+      "package": "unic-common",
+      "version": "0.9.0",
+      "rationale": "Transitive through Tauri urlpattern; the advisory reports maintenance status, not a vulnerability. Replace with the upstream Tauri dependency update."
+    },
+    {
+      "kind": "unmaintained",
+      "advisory_id": "RUSTSEC-2025-0100",
+      "package": "unic-ucd-ident",
+      "version": "0.9.0",
+      "rationale": "Transitive through Tauri urlpattern; the advisory reports maintenance status, not a vulnerability. Replace with the upstream Tauri dependency update."
+    },
+    {
+      "kind": "unmaintained",
+      "advisory_id": "RUSTSEC-2025-0098",
+      "package": "unic-ucd-version",
+      "version": "0.9.0",
+      "rationale": "Transitive through Tauri urlpattern; the advisory reports maintenance status, not a vulnerability. Replace with the upstream Tauri dependency update."
+    },
+    {
+      "kind": "yanked",
+      "advisory_id": null,
+      "package": "spin",
+      "version": "0.9.8",
+      "rationale": "Transitive through SQLx and flume; the exact checksum is locked and cargo-audit reports no vulnerability. Replace with the upstream SQLx dependency update."
+    }
+  ]
+}

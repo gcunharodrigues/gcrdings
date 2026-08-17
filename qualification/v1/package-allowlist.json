@@ -1,0 +1,200 @@
+{
+  "schema_version": 1,
+  "distribution_mode": "local_adhoc",
+  "public_notarized": "unsatisfied",
+  "toolchain": {
+    "rust": "1.97.1",
+    "node": "v22.23.1",
+    "pnpm": "10.34.5",
+    "swift": "6.3.3 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)",
+    "xcode": "26.6 (17F113)",
+    "macos_sdk": "26.5",
+    "builder_macos": "26.5.2"
+  },
+  "build_inputs": {
+    "fluidaudio_version": "0.14.1",
+    "fluidaudio_commit": "d302273d49ef4d8914b27f20d342be482e8810f1",
+    "fluidaudio_archive_sha256": "e14173844a6c296995c9e8ca0fea574168ef2204d0c682a828f46f002892ed5d"
+  },
+  "application_entries": [
+    "Contents/Info.plist",
+    "Contents/MacOS/ffmpeg",
+    "Contents/MacOS/foundation-helper",
+    "Contents/MacOS/gcrdings",
+    "Contents/Resources/LICENSE.md",
+    "Contents/Resources/PROVENANCE.md",
+    "Contents/Resources/SOURCE_OFFER.md",
+    "Contents/Resources/THIRD_PARTY_NOTICES.md",
+    "Contents/Resources/app_icon.icns",
+    "Contents/Resources/templates/daily_standup.json",
+    "Contents/Resources/templates/project_sync.json",
+    "Contents/Resources/templates/psychatric_session.json",
+    "Contents/Resources/templates/retrospective.json",
+    "Contents/Resources/templates/sales_marketing_client_call.json",
+    "Contents/Resources/templates/standard_meeting.json",
+    "Contents/_CodeSignature/CodeResources"
+  ],
+  "application_directories": [
+    "Contents",
+    "Contents/MacOS",
+    "Contents/Resources",
+    "Contents/Resources/templates",
+    "Contents/_CodeSignature"
+  ],
+  "application_rules": [
+    {
+      "path": "Contents/Info.plist",
+      "type": "file",
+      "mode": "0644",
+      "hash_policy": "build_manifest_exact"
+    },
+    {
+      "path": "Contents/MacOS/ffmpeg",
+      "type": "file",
+      "mode": "0755",
+      "hash_policy": "build_manifest_exact",
+      "input_sha256": "77d2c853f431318d55ec02676d9b2f185ebfdddb9f7677a251fbe453affe025a"
+    },
+    {
+      "path": "Contents/MacOS/foundation-helper",
+      "type": "file",
+      "mode": "0755",
+      "hash_policy": "build_manifest_exact"
+    },
+    {
+      "path": "Contents/MacOS/gcrdings",
+      "type": "file",
+      "mode": "0755",
+      "hash_policy": "build_manifest_exact"
+    },
+    {
+      "path": "Contents/Resources/LICENSE.md",
+      "type": "file",
+      "mode": "0644",
+      "hash_policy": "source_exact",
+      "source": "LICENSE.md",
+      "sha256": "56d3b880b498db6ad69a4059b62fe6ae1268f5237662d71455cdc44e9eea72c2"
+    },
+    {
+      "path": "Contents/Resources/PROVENANCE.md",
+      "type": "file",
+      "mode": "0644",
+      "hash_policy": "source_exact",
+      "source": "PROVENANCE.md",
+      "sha256": "892e5f9a0b5166708dfff0fd892fc25cca352100a96a1d8a33c9e4311a4f7bf0"
+    },
+    {
+      "path": "Contents/Resources/SOURCE_OFFER.md",
+      "type": "file",
+      "mode": "0644",
+      "hash_policy": "source_exact",
+      "source": "SOURCE_OFFER.md",
+      "sha256": "3fb99c4a7a54aa11564bc2a82668faeea44aad634a731e6ea16560322f6285cc"
+    },
+    {
+      "path": "Contents/Resources/THIRD_PARTY_NOTICES.md",
+      "type": "file",
+      "mode": "0644",
+      "hash_policy": "source_exact",
+      "source": "THIRD_PARTY_NOTICES.md",
+      "sha256": "9a40d4487279cc1f5821d32116c7d622c2b0bfe635a415db0126c8b41aab7733"
+    },
+    {
+      "path": "Contents/Resources/app_icon.icns",
+      "type": "file",
+      "mode": "0644",
+      "hash_policy": "source_exact",
+      "source": "frontend/src-tauri/icons/app_icon.icns",
+      "sha256": "ada7cef9c9f8b3325fa8a81d2f9054a178d0591f6e0a856e164e33faa1d2852c"
+    },
+    {
+      "path": "Contents/Resources/templates/daily_standup.json",
+      "type": "file",
+      "mode": "0644",
+      "hash_policy": "source_exact",
+      "source": "frontend/src-tauri/templates/daily_standup.json",
+      "sha256": "a7bbb835d4480501f5279fff6ff2ba02aa0b89b1ddc16b7448a6a92e9581b73d"
+    },
+    {
+      "path": "Contents/Resources/templates/project_sync.json",
+      "type": "file",
+      "mode": "0644",
+      "hash_policy": "source_exact",
+      "source": "frontend/src-tauri/templates/project_sync.json",
+      "sha256": "343d0a5b9b113b8244a9e8820b81a1daabfff193a6a3b5d13f7e22343a98f1c0"
+    },
+    {
+      "path": "Contents/Resources/templates/psychatric_session.json",
+      "type": "file",
+      "mode": "0644",
+      "hash_policy": "source_exact",
+      "source": "frontend/src-tauri/templates/psychatric_session.json",
+      "sha256": "e5264eb534ec5911d19094190bd3e298bf9afa2f193dac87441092bbf63cb2fd"
+    },
+    {
+      "path": "Contents/Resources/templates/retrospective.json",
+      "type": "file",
+      "mode": "0644",
+      "hash_policy": "source_exact",
+      "source": "frontend/src-tauri/templates/retrospective.json",
+      "sha256": "586801300ac0344d8810a936997f112bcc2fb8bc94b17dc85666d9af6b01a497"
+    },
+    {
+      "path": "Contents/Resources/templates/sales_marketing_client_call.json",
+      "type": "file",
+      "mode": "0644",
+      "hash_policy": "source_exact",
+      "source": "frontend/src-tauri/templates/sales_marketing_client_call.json",
+      "sha256": "1f469c52f2341f8c0e193449ac9d06c58e075c0e1d9a2bd2d19c62e14c190e0d"
+    },
+    {
+      "path": "Contents/Resources/templates/standard_meeting.json",
+      "type": "file",
+      "mode": "0644",
+      "hash_policy": "source_exact",
+      "source": "frontend/src-tauri/templates/standard_meeting.json",
+      "sha256": "c1992a9be044c2d4c4dc3c2f96a6968c4c083a7bf88ebfca677923e98f55eeb1"
+    },
+    {
+      "path": "Contents/_CodeSignature/CodeResources",
+      "type": "file",
+      "mode": "0644",
+      "hash_policy": "build_manifest_exact"
+    }
+  ],
+  "dmg_entries": [
+    { "path": ".DS_Store", "type": "file", "mode": "0644" },
+    { "path": ".VolumeIcon.icns", "type": "file", "mode": "0644" },
+    { "path": "Applications", "type": "symlink", "mode": "0755", "target": "/Applications" },
+    { "path": "gcrdings.app", "type": "directory", "mode": "0755" }
+  ],
+  "documented_variance": [
+    "Mach-O ad-hoc signature bytes; each build records and verifies its observed SHA-256 independently",
+    "DMG container bytes; mounted closed contents and embedded app SHA-256 facts must match"
+  ],
+  "required_documents": [
+    "LICENSE.md",
+    "THIRD_PARTY_NOTICES.md",
+    "PROVENANCE.md",
+    "SOURCE_OFFER.md"
+  ],
+  "forbidden_suffixes": [
+    ".dSYM",
+    ".map",
+    ".pem",
+    ".p12",
+    ".profraw",
+    ".swiftmodule"
+  ],
+  "forbidden_content_markers": [
+    "/Users/",
+    "/Users/runner",
+    "/private/var/folders/",
+    ".agents-worktrees/",
+    "gcrdings-private-canary",
+    "PRIVATE_SESSION_CANARY",
+    "Meetily Pro",
+    "llama-helper",
+    "BEGIN PRIVATE KEY"
+  ]
+}

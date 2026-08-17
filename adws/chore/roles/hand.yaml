@@ -1,0 +1,13 @@
+# Chores get the light tier — 'don't over-process what is small' (Dan).
+# Pin-holes: the chore gauntlet's own commands, nothing else.
+tier: light
+effort: low
+allowed_tools:
+  - "Bash(cargo test --workspace --locked && pnpm --dir frontend exec bun test tests/lib)"
+  - "Bash(cargo test --workspace --locked && pnpm --dir frontend exec bun test tests/lib:*)"
+  - "Bash(cargo fmt --all --check && cargo clippy --workspace --all-targets --locked -- -D warnings && pnpm --dir frontend lint)"
+  - "Bash(cargo fmt --all --check && cargo clippy --workspace --all-targets --locked -- -D warnings && pnpm --dir frontend lint:*)"
+  - "Bash(cargo audit && pnpm --dir frontend audit --audit-level high)"
+  - "Bash(cargo audit && pnpm --dir frontend audit --audit-level high:*)"
+  - "Bash(./scripts/bootstrap-dev.sh && pnpm --dir frontend install --frozen-lockfile && cargo fetch --locked)"
+  - "Bash(./scripts/bootstrap-dev.sh && pnpm --dir frontend install --frozen-lockfile && cargo fetch --locked:*)"

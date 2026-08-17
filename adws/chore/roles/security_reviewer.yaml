@@ -1,0 +1,13 @@
+# Dedicated security pass — SEPARATE from the code reviewer and BLIND to its
+# verdict, so two independent judgments reach the human gate. SOTA: a security
+# miss is the expensive miss. Reads the diff + the gauntlet's own SAST output
+# ({{gauntlet.output}}) and owns the semantic gap npm audit/gitleaks/semgrep
+# cannot judge (authz/IDOR, taint, crypto correctness, insecure design).
+tier: sota
+effort: high
+allowed_tools:
+  - "Bash(git status)"
+  - "Bash(git status:*)"
+  - "Bash(git diff)"
+  - "Bash(git diff:*)"
+  - "Bash(git log:*)"

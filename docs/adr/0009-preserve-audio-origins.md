@@ -1,0 +1,3 @@
+# Preserve microphone and system audio separately
+
+V1 will retain microphone audio and system audio as independent synchronized source tracks and generate a mixed track for ordinary playback. The processing pipeline handles each relevant origin before results are aligned into one timeline, allowing the local user to be assigned directly in individual-microphone mode and preserving the ability to diagnose or reprocess one source without damaging the other. FluidAudio supplies only speaker diarization. Per-origin processing and alignment remain the next delivery slice after the shared-track diarization integration.
