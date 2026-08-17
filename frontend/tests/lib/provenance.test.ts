@@ -82,10 +82,11 @@ describe("PROVENANCE.md", () => {
   });
 
   test("uses no moving Hugging Face model reference", () => {
-    const sourceRoot = path.join(REPO_ROOT, "frontend", "src-tauri", "src");
-    const files = execFileSync("rg", ["-l", "huggingface\\.co", sourceRoot], {
-      encoding: "utf8",
-    })
+    const files = execFileSync(
+      "git",
+      ["grep", "-l", "-e", "huggingface\\.co", "--", "frontend/src-tauri/src"],
+      { encoding: "utf8" },
+    )
       .trim()
       .split("\n")
       .filter(Boolean);
