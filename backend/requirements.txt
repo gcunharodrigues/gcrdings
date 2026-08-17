@@ -1,10 +1,10 @@
-pydantic-ai==0.2.15
-pydantic==2.11.5
+pydantic-ai==1.106.0
+pydantic==2.13.4
 pandas==2.2.3
 devtools==0.12.2
-python-dotenv==1.1.0
-fastapi==0.115.9
-uvicorn==0.34.0
-python-multipart==0.0.20
+python-dotenv==1.2.3
+fastapi==0.141.1
+uvicorn==0.35.0
+python-multipart==0.0.32
 aiosqlite==0.21.0
 ollama==0.5.2

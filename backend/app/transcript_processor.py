@@ -3,7 +3,7 @@ from typing import List, Tuple, Literal
 from pydantic_ai import Agent
 from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.models.groq import GroqModel
-from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.providers.groq import GroqProvider
 from pydantic_ai.providers.anthropic import AnthropicProvider
@@ -139,7 +139,7 @@ class TranscriptProcessor:
             elif model == "openai":
                 api_key = await db.get_api_key("openai")
                 if not api_key: raise ValueError("OPENAI_API_KEY environment variable not set")
-                llm = OpenAIModel(model_name, provider=OpenAIProvider(api_key=api_key))
+                llm = OpenAIChatModel(model_name, provider=OpenAIProvider(api_key=api_key))
                 logger.info(f"Using OpenAI model: {model_name}")
             # --- END OPENAI SUPPORT ---
             else:
@@ -149,8 +149,8 @@ class TranscriptProcessor:
             # Initialize the agent with the selected LLM
             agent = Agent(
                 llm,
-                result_type=SummaryResponse,
-                result_retries=2,
+                output_type=SummaryResponse,
+                retries=2,
             )
             logger.info("Pydantic-AI Agent initialized.")
 
@@ -209,7 +209,9 @@ class TranscriptProcessor:
                         logger.info(f"Summary result for chunk {i+1}: {summary_result}")
                         logger.info(f"Summary result type for chunk {i+1}: {type(summary_result)}")
 
-                    if hasattr(summary_result, 'data') and isinstance(summary_result.data, SummaryResponse):
+                    if hasattr(summary_result, 'output') and isinstance(summary_result.output, SummaryResponse):
+                         final_summary_pydantic = summary_result.output
+                    elif hasattr(summary_result, 'data') and isinstance(summary_result.data, SummaryResponse):
                          final_summary_pydantic = summary_result.data
                     elif isinstance(summary_result, SummaryResponse):
                          final_summary_pydantic = summary_result
@@ -243,7 +245,7 @@ class TranscriptProcessor:
             {transcript}
             ---
         Please capture all relevant action items. Transcription can have spelling mistakes. correct it if required. context is important.
-        
+
         While generating the summary, please add the following context:
         ---
         {custom_prompt}
@@ -258,7 +260,7 @@ class TranscriptProcessor:
         ollama_host = os.getenv('OLLAMA_HOST', 'http://127.0.0.1:11434')
         client = AsyncClient(host=ollama_host)
         self.active_clients.append(client)
-        
+
         try:
             response = await client.chat(model=model_name, messages=[message], stream=True, format=SummaryResponse.model_json_schema())
             
@@ -310,5 +312,3 @@ class TranscriptProcessor:
                 logger.info("All Ollama client sessions terminated")
         except Exception as e:
             logger.error(f"Error during TranscriptProcessor cleanup: {str(e)}", exc_info=True)
-
-        
