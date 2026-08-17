@@ -63,7 +63,15 @@ jobs:
           test "$(shasum -a 256 "$ffmpeg_source" | awk '{print $1}')" = \
             77d2c853f431318d55ec02676d9b2f185ebfdddb9f7677a251fbe453affe025a
           echo "GCRDINGS_FFMPEG_SOURCE=$ffmpeg_source" >>"$GITHUB_ENV"
-      - run: ./scripts/prepare-foundation-helper.sh
+      - name: Prepare Foundation Models helper when the SDK is available
+        shell: bash
+        run: |
+          set -euo pipefail
+          if swift -e 'import FoundationModels' >/dev/null 2>&1; then
+            ./scripts/prepare-foundation-helper.sh
+          else
+            echo 'FoundationModels SDK unavailable; helper packaging is skipped.'
+          fi
       - name: Stage verified FFmpeg beside Cargo test binaries
         shell: bash
         run: |
