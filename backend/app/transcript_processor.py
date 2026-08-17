@@ -119,7 +119,7 @@ class TranscriptProcessor:
                 # Use environment variable for Ollama host configuration
                 ollama_host = os.getenv('OLLAMA_HOST', 'http://localhost:11434')
                 ollama_base_url = f"{ollama_host}/v1"
-                ollama_model = OpenAIModel(
+                ollama_model = OpenAIChatModel(
                     model_name=model_name, provider=OpenAIProvider(base_url=ollama_base_url)
                 )
                 llm = ollama_model

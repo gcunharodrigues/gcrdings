@@ -1,0 +1,6 @@
+name: gcrdings-codeql
+
+# Vendored cpp-httplib is not project-owned code. Its local HTTP server path is
+# intentional and is reviewed through the upstream dependency and build checks.
+paths-ignore:
+  - backend/whisper-custom/server/httplib.h

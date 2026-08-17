@@ -17,7 +17,7 @@ gcrdings is a Rust/Tauri and TypeScript application with macOS build inputs and 
 1. Record the accepted specification, zero-question Clarify result, plan, checklist, and Analyze result.
 2. Remove public leakage and generated/unreferenced assets. Preserve synthetic negative-test markers.
 3. Update public documentation, contribution governance, profile, and security contact.
-4. Split fast CI from the manual long release gate. Pin every action. Add Dependabot and CodeQL.
+4. Split fast CI from the manual long release gate. Pin every action. Add Dependabot and CodeQL for the supported Rust and TypeScript surfaces.
 5. Run static and focused checks, then review the exact integrated candidate.
 6. Create an empty public repository, configure server-side rules, publish only `HEAD:main`, and verify live state.
 
