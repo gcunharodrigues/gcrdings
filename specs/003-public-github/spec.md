@@ -62,7 +62,7 @@ As a future maintainer, I can distinguish source publication from binary or pack
 - **FR-005**: Public-facing documentation MUST state independent-repository provenance, source-only scope, MIT obligations, contribution rules, security reporting, and future channel boundaries.
 - **FR-006**: Every workflow action MUST use an immutable commit SHA. Workflow permissions MUST be least privilege, and Pull Request workflows MUST use no repository secrets.
 - **FR-007**: Fast Pull Request checks MUST be separate from the manual long macOS release-gate workflow.
-- **FR-008**: The repository MUST define CODEOWNERS, Dependabot, and CodeQL for supported Rust and TypeScript surfaces.
+- **FR-008**: The repository MUST define CODEOWNERS, Dependabot, and CodeQL for the supported Rust and TypeScript surfaces.
 - **FR-009**: `main` MUST require Pull Request review by `@gcunharodrigues`, CODEOWNER review, required CI, resolved conversations, stale-approval dismissal, and no force-push or deletion.
 - **FR-010**: Publication MUST push only `HEAD:refs/heads/main`; it MUST NOT use `--mirror`, `--all`, or publish work branches.
 - **FR-011**: Secret/path/PII/license/workflow/artifact scans, clone verification, ordinary review, Security Review, and fail-closed Release Gate MUST pass before the first source push.

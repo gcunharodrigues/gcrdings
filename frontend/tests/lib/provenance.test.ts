@@ -85,14 +85,14 @@ describe("PROVENANCE.md", () => {
     const files = execFileSync(
       "git",
       ["grep", "-l", "-e", "huggingface\\.co", "--", "frontend/src-tauri/src"],
-      { encoding: "utf8" },
+      { cwd: REPO_ROOT, encoding: "utf8" },
     )
       .trim()
       .split("\n")
-      .filter(Boolean);
+    .filter(Boolean);
     const moving = files.flatMap((file) =>
       fs
-        .readFileSync(file, "utf8")
+        .readFileSync(path.join(REPO_ROOT, file), "utf8")
         .split("\n")
         .filter((line) => line.includes("/resolve/main/"))
         .map((line) => `${path.relative(REPO_ROOT, file)}: ${line.trim()}`),

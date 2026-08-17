@@ -1,5 +1,9 @@
 import { invoke } from '@tauri-apps/api/core';
 
+function createUserId(): string {
+  return `user_${Date.now()}_${globalThis.crypto.randomUUID().replaceAll('-', '').slice(0, 9)}`;
+}
+
 export interface AnalyticsProperties {
   [key: string]: string;
 }
@@ -172,7 +176,7 @@ export class Analytics {
       
       if (!userId) {
         // Generate new user ID
-        userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        userId = createUserId();
         await store.set('user_id', userId);
         await store.set('is_first_launch', true);
         await store.save();
@@ -184,7 +188,7 @@ export class Analytics {
       // Fallback to session storage
       let userId = sessionStorage.getItem('gcrdings_user_id');
       if (!userId) {
-        userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        userId = createUserId();
         sessionStorage.setItem('gcrdings_user_id', userId);
         sessionStorage.setItem('is_first_launch', 'true');
       }

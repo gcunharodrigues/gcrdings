@@ -13,7 +13,7 @@
 - [ ] PR-only contribution policy and CODEOWNERS are committed.
 - [ ] Actions use full commit SHAs and least-privilege permissions.
 - [ ] Pull Request checks are fast; macOS release checks are manual and separate.
-- [ ] Dependabot and CodeQL cover supported dependency and code surfaces.
+- [ ] Dependabot and CodeQL cover the supported Rust and TypeScript surfaces.
 
 ## Assurance and publication
 
