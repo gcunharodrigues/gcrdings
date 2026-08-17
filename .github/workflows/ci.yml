@@ -71,6 +71,10 @@ jobs:
             ./scripts/prepare-foundation-helper.sh
           else
             echo 'FoundationModels SDK unavailable; helper packaging is skipped.'
+            target_triple=$(rustc -vV | awk '/^host:/ {print $2}')
+            mkdir -p frontend/src-tauri/binaries
+            printf '%s\n' '#!/bin/sh' 'exit 78' > "frontend/src-tauri/binaries/foundation-helper-${target_triple}"
+            chmod 0755 "frontend/src-tauri/binaries/foundation-helper-${target_triple}"
           fi
       - name: Stage verified FFmpeg beside Cargo test binaries
         shell: bash
