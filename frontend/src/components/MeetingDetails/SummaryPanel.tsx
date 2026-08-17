@@ -29,6 +29,7 @@ export function SummaryPanel({ record, loadError, hasUnsavedTranscript, onSelect
       </div>
 
       <h1 id="findings-heading" className="mt-4 text-lg font-semibold text-gray-900">Grounded findings</h1>
+      <p className="mt-1 text-xs text-gray-500">Every accepted finding resolves to a playable principal-transcript passage.</p>
       {hasUnsavedTranscript && <p className="mt-2 rounded bg-amber-50 p-3 text-sm text-amber-900">Save transcript corrections before generating so evidence uses the principal record.</p>}
       <p aria-live="polite" className="mt-2 text-sm text-gray-600">{loadError ?? (record ? generationMessage(record.generation_status, record.error_code ?? undefined) : "Loading local findings…")}</p>
 

@@ -114,6 +114,7 @@ export function TranscriptPanel({
               isStopping={isStopping}
               enableStreaming={isRecording}
               showConfidence={true}
+              showRecentSessions
             />
           </div>
         </div>

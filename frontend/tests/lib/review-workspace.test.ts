@@ -13,18 +13,20 @@ describe("editable Evidence desk contract", () => {
     expect(mergePaginatedTranscripts([draft], [stale, next])).toEqual([draft, next]);
   });
 
-  test("renders the three accepted columns and current grounded evidence", async () => {
-    const [page, evidence, findings] = await Promise.all([
+  test("renders the accepted columns and current grounded evidence", async () => {
+    const [page, summary, findings] = await Promise.all([
       source("../../src/app/meeting-details/page-content.tsx"),
-      source("../../src/components/MeetingDetails/EvidenceStatusPanel.tsx"),
+      source("../../src/components/MeetingDetails/SummaryPanel.tsx"),
       source("../../src/types/verifiable-record.ts"),
     ]);
 
     expect(page.match(/data-review-column=/g)).toHaveLength(2);
-    expect(page).toContain("<EvidenceStatusPanel");
-    expect(evidence).toContain('data-review-column="evidence"');
-    expect(evidence).toContain("generatedFindings");
-    expect(evidence).toContain("Play at");
+    // Evidence lives inside the findings it belongs to; a separate column only
+    // restated the same items with the same seek action.
+    expect(page).not.toContain("<EvidenceStatusPanel");
+    expect(summary).toContain("generatedFindings");
+    expect(summary).toContain("Play evidence at");
+    expect(summary).toContain("resolves to a playable principal-transcript passage");
     for (const state of ["unavailable", "failed", "stale"]) expect(findings).toContain(`status === "${state}"`);
     expect(findings).toContain("Local findings are pending.");
   });
@@ -48,7 +50,10 @@ describe("editable Evidence desk contract", () => {
 
     expect(provider).toContain("hasUnsavedReviewChanges");
     expect(provider).toContain("hasUnsavedReviewChangesRef.current");
-    expect(provider).toContain("window.confirm");
+    // The guard is answered in-app; nothing may fall back to the OS confirm sheet.
+    expect(provider).not.toContain("window.confirm");
+    expect(provider).toContain("<ConfirmationModal");
+    expect(provider).toContain("setPendingNavigation(path)");
     expect(sidebar).not.toContain("router.push(");
     expect(sidebar).toContain("navigate(basePath)");
     expect(recordingStop).not.toContain("router.push(");

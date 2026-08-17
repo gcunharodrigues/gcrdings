@@ -7,7 +7,6 @@ import { useSidebar } from "@/components/Sidebar/SidebarProvider";
 import { TranscriptPanel } from "@/components/MeetingDetails/TranscriptPanel";
 import { SummaryPanel } from "@/components/MeetingDetails/SummaryPanel";
 import { ParticipantsPanel } from "@/components/MeetingDetails/ParticipantsPanel";
-import { EvidenceStatusPanel } from "@/components/MeetingDetails/EvidenceStatusPanel";
 import { AgentHandoffMenu } from "@/components/MeetingDetails/AgentHandoffMenu";
 import { ExternalTransferDialog } from "@/components/MeetingDetails/ExternalTransferDialog";
 import { SessionHeader } from "@/components/MeetingDetails/SessionHeader";
@@ -101,7 +100,7 @@ export default function PageContent({ meeting, onRefetchTranscripts, hasMore, is
         <ExternalTransferDialog meetingId={meeting.id} disabled={Boolean(reviewRecord.state?.dirty)} />
         <AgentHandoffMenu meetingId={meeting.id} disabled={Boolean(reviewRecord.state?.dirty)} />
       </header>
-      <main className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(15rem,0.75fr)_minmax(24rem,1.8fr)_minmax(13rem,0.7fr)] lg:overflow-hidden">
+      <main className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(18rem,1fr)_minmax(28rem,2fr)] lg:overflow-hidden">
         <section aria-label="Session findings" data-review-column="context" className="flex min-h-0 flex-col overflow-hidden bg-white">
           <SummaryPanel record={findings.record} loadError={findings.error} hasUnsavedTranscript={Boolean(reviewRecord.state?.dirty)} onSelectType={(type) => void findings.selectType(type)} onGenerate={() => void findings.generate()} onCancel={() => void findings.cancel()} onSeek={seek} />
           {reviewRecord.state && <ParticipantsPanel state={reviewRecord.state} dispatch={reviewRecord.dispatch} />}
@@ -111,7 +110,6 @@ export default function PageContent({ meeting, onRefetchTranscripts, hasMore, is
         ) : (
           <section aria-live="polite" data-review-column="transcript" className="flex items-center justify-center border-x border-gray-200 bg-white p-8 text-center"><div><p className="text-sm text-gray-700">{reviewRecord.loadError ?? "Loading principal transcript…"}</p>{reviewRecord.loadError && <button type="button" onClick={() => void reviewRecord.reload()} className="mt-3 rounded bg-blue-700 px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2">Retry</button>}</div></section>
         )}
-        <EvidenceStatusPanel record={findings.record} onSeek={seek} />
       </main>
     </motion.div>
   );

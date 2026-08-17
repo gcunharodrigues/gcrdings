@@ -5,6 +5,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { useTranscriptStreaming } from "@/hooks/useTranscriptStreaming";
 import { ConfidenceIndicator } from "./ConfidenceIndicator";
+import { RecentSessions } from './RecentSessions';
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { RecordingStatusBar } from "./RecordingStatusBar";
 import { motion, AnimatePresence } from "framer-motion";
@@ -25,6 +26,8 @@ export interface VirtualizedTranscriptViewProps {
     enableStreaming?: boolean;
     /** Show confidence indicators */
     showConfidence?: boolean;
+    /** Offer the Session list in the idle empty state (Home only). */
+    showRecentSessions?: boolean;
     /** Completely disable auto-scroll behavior (for meeting details page) */
     disableAutoScroll?: boolean;
 
@@ -123,6 +126,7 @@ export const VirtualizedTranscriptView: React.FC<VirtualizedTranscriptViewProps>
     isStopping = false,
     enableStreaming = false,
     showConfidence = true,
+    showRecentSessions = false,
     disableAutoScroll = false,
     hasMore = false,
     isLoadingMore = false,
@@ -264,6 +268,7 @@ export const VirtualizedTranscriptView: React.FC<VirtualizedTranscriptViewProps>
                         <>
                             <p className="text-lg font-semibold">Welcome to gcrdings!</p>
                             <p className="text-xs mt-1">Start recording to see live transcription</p>
+                            {showRecentSessions && <RecentSessions />}
                         </>
                     )}
                 </motion.div>
