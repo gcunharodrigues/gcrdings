@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import type { Transcript } from "@/types";
 import { useSidebar } from "@/components/Sidebar/SidebarProvider";
@@ -11,6 +11,7 @@ import { EvidenceStatusPanel } from "@/components/MeetingDetails/EvidenceStatusP
 import { AgentHandoffMenu } from "@/components/MeetingDetails/AgentHandoffMenu";
 import { ExternalTransferDialog } from "@/components/MeetingDetails/ExternalTransferDialog";
 import { SessionHeader } from "@/components/MeetingDetails/SessionHeader";
+import { ConfirmationModal } from "@/components/ConfirmationModel/confirmation-modal";
 import { useMeetingOperations } from "@/hooks/meeting-details/useMeetingOperations";
 import { useReviewRecord } from "@/hooks/meeting-details/useReviewRecord";
 import { useVerifiableRecord } from "@/hooks/meeting-details/useVerifiableRecord";
@@ -44,9 +45,24 @@ export default function PageContent({ meeting, onRefetchTranscripts, hasMore, is
     });
   }, [meeting.transcripts, reviewRecord.state?.meetingId]);
 
+  // The dialog resolves the promise the caller is awaiting, so the operation
+  // still blocks on a real answer instead of the OS confirm sheet.
+  const [discardPrompt, setDiscardPrompt] = useState(false);
+  const discardResolver = useRef<((confirmed: boolean) => void) | null>(null);
+
+  const answerDiscardPrompt = (confirmed: boolean) => {
+    setDiscardPrompt(false);
+    discardResolver.current?.(confirmed);
+    discardResolver.current = null;
+  };
+
   const confirmDestructiveOperation = async () => {
     if (!reviewRecord.state?.dirty) return true;
-    if (!window.confirm("Discard unsaved transcript corrections and continue?")) return false;
+    const confirmed = await new Promise<boolean>((resolve) => {
+      discardResolver.current = resolve;
+      setDiscardPrompt(true);
+    });
+    if (!confirmed) return false;
     await reviewRecord.reload();
     return true;
   };
@@ -66,6 +82,15 @@ export default function PageContent({ meeting, onRefetchTranscripts, hasMore, is
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }} className="flex h-screen flex-col bg-gray-50">
+      <ConfirmationModal
+        isOpen={discardPrompt}
+        title="Discard transcript corrections?"
+        text="This operation replaces the current draft. Unsaved transcript corrections are discarded."
+        confirmLabel="Discard and continue"
+        cancelLabel="Cancel"
+        onConfirm={() => answerDiscardPrompt(true)}
+        onCancel={() => answerDiscardPrompt(false)}
+      />
       <header className="flex min-h-12 items-center gap-4 border-b border-gray-200 bg-white px-4 py-2">
         <SessionHeader
           title={meeting.title}

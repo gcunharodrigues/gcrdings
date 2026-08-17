@@ -4,9 +4,11 @@ import type { Transcript } from "@/types";
 import type { ReviewRecordAction, ReviewRecordState } from "@/lib/review-record";
 import type { SessionAudioPlayer } from "@/hooks/useAudioPlayer";
 import { AudioPlayer } from "@/components/AudioPlayer";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { TranscriptButtonGroup } from "./TranscriptButtonGroup";
+import { ConfirmationModal } from "@/components/ConfirmationModel/confirmation-modal";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 
 interface TranscriptPanelProps {
   state: ReviewRecordState;
@@ -64,6 +66,7 @@ export function TranscriptPanel({
     : state.present.transcriptOrder;
   const saving = state.saveStatus.type === "saving";
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [confirmReload, setConfirmReload] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const virtualizer = useVirtualizer({
     count: visibleIds.length,
@@ -71,6 +74,25 @@ export function TranscriptPanel({
     estimateSize: () => 150,
     overscan: 5,
   });
+
+  useKeyboardShortcuts(
+    useMemo(
+      () => [
+        { key: 's', mod: true, allowInInput: true, handler: () => { if (state.dirty && !saving) void save(); } },
+        { key: 'z', mod: true, handler: () => { if (state.past.length && !saving) dispatch({ type: "undo" }); } },
+        { key: 'z', mod: true, shift: true, handler: () => { if (state.future.length && !saving) dispatch({ type: "redo" }); } },
+        {
+          key: ' ',
+          handler: () => {
+            if (audioPlayer.status !== "ready") return;
+            if (audioPlayer.isPlaying) audioPlayer.pause();
+            else void audioPlayer.play();
+          },
+        },
+      ],
+      [audioPlayer, dispatch, save, saving, state.dirty, state.future.length, state.past.length],
+    ),
+  );
 
   const playPassage = async (id: string, seconds?: number) => {
     const index = visibleIds.indexOf(id);
@@ -111,7 +133,7 @@ export function TranscriptPanel({
             type="button"
             onClick={() => dispatch({ type: "undo" })}
             disabled={state.past.length === 0 || saving}
-            aria-label="Undo transcript edit"
+            aria-label="Undo transcript edit" title="Undo (⌘Z)"
             className="rounded border px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-50"
           >
             Undo
@@ -120,7 +142,7 @@ export function TranscriptPanel({
             type="button"
             onClick={() => dispatch({ type: "redo" })}
             disabled={state.future.length === 0 || saving}
-            aria-label="Redo transcript edit"
+            aria-label="Redo transcript edit" title="Redo (⇧⌘Z)"
             className="rounded border px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-50"
           >
             Redo
@@ -129,7 +151,7 @@ export function TranscriptPanel({
             type="button"
             onClick={() => void save()}
             disabled={!state.dirty || saving}
-            aria-label="Save principal transcript"
+            aria-label="Save principal transcript" title="Save (⌘S)"
             className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save"}
@@ -142,15 +164,23 @@ export function TranscriptPanel({
           <p>Save failed. Your edits remain available. {state.saveStatus.error}</p>
           <button
             type="button"
-            onClick={() => {
-              if (window.confirm("Reload the latest saved record and discard this draft?")) void reload();
-            }}
+            onClick={() => setConfirmReload(true)}
             className="rounded border border-red-300 bg-white px-3 py-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700"
           >
             Reload latest
           </button>
         </div>
       )}
+
+      <ConfirmationModal
+        isOpen={confirmReload}
+        title="Discard this draft?"
+        text="Reloading replaces your unsaved edits with the latest saved record."
+        confirmLabel="Discard and reload"
+        cancelLabel="Keep editing"
+        onConfirm={() => { setConfirmReload(false); void reload(); }}
+        onCancel={() => setConfirmReload(false)}
+      />
 
       <AudioPlayer player={audioPlayer} />
 

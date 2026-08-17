@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { ChevronDown, ChevronRight, File, Settings, ChevronLeftCircle, ChevronRightCircle, Calendar, StickyNote, Home, Trash2, Mic, Square, Plus, Search, Pencil, NotebookPen, SearchIcon, X, Upload } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useSidebar } from './SidebarProvider';
 import type { CurrentMeeting } from '@/components/Sidebar/SidebarProvider';
-import { ConfirmationModal } from '../ConfirmationModel/confirmation-modal';
 import { ModelConfig } from '@/components/ModelSettingsModal';
 import { SettingTabs } from '../SettingTabs';
 import { TranscriptModelProps } from '@/components/TranscriptSettings';
@@ -16,14 +15,7 @@ import { toast } from 'sonner';
 import { useRecordingState } from '@/contexts/RecordingStateContext';
 import { useImportDialog } from '@/contexts/ImportDialogContext';
 import { useConfig } from '@/contexts/ConfigContext';
-
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { VisuallyHidden } from "@/components/ui/visually-hidden"
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 
 import { MessageToast } from '../MessageToast';
 import Logo from '../Logo';
@@ -77,12 +69,9 @@ const Sidebar: React.FC = () => {
   });
   const [settingsSaveSuccess, setSettingsSaveSuccess] = useState<boolean | null>(null);
 
-  // State for edit modal
-  const [editModalState, setEditModalState] = useState<{ isOpen: boolean; meetingId: string | null; currentTitle: string }>({
-    isOpen: false,
-    meetingId: null,
-    currentTitle: ''
-  });
+  // Inline title editing: a row swaps to an input in place, so renaming is a
+  // double-click plus Enter instead of a hover, a pencil and a modal.
+  const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>('');
 
   // Ensure 'meetings' folder is always expanded
@@ -103,7 +92,10 @@ const Sidebar: React.FC = () => {
   // }, [settingsSaveSuccess]);
 
 
-  const [deleteModalState, setDeleteModalState] = useState<{ isOpen: boolean; itemId: string | null }>({ isOpen: false, itemId: null });
+  // A delete hides the Session immediately and only reaches the backend once the
+  // undo window closes, so nothing on disk is destroyed while undo is offered.
+  const [pendingDeletions, setPendingDeletions] = useState<Record<string, CurrentMeeting>>({});
+  const deleteTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   useEffect(() => {
     // Note: Don't set hardcoded defaults - let DB be the source of truth
@@ -318,62 +310,72 @@ const Sidebar: React.FC = () => {
   }, [sidebarItems, searchQuery, searchResults, expandedFolders]);
 
 
-  const handleDelete = async (itemId: string) => {
-    console.log('Deleting item:', itemId);
-    const payload = {
-      meetingId: itemId
-    };
+  const UNDO_WINDOW_MS = 8000;
+
+  const commitDelete = async (item: CurrentMeeting) => {
+    delete deleteTimers.current[item.id];
+    setPendingDeletions((current) => {
+      const { [item.id]: _removed, ...rest } = current;
+      return rest;
+    });
 
     try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      await invoke('api_delete_meeting', {
-        meetingId: itemId,
-      });
-      console.log('Meeting deleted successfully');
-      const updatedMeetings = meetings.filter((m: CurrentMeeting) => m.id !== itemId);
-      setMeetings(updatedMeetings);
-
-      // Track meeting deletion
-      Analytics.trackMeetingDeleted(itemId);
-
-      // Show success toast
-      toast.success("Meeting deleted successfully", {
-        description: "All associated data has been removed"
-      });
-
-      // If deleting the active meeting, navigate to home
-      if (currentMeeting?.id === itemId) {
-        setCurrentMeeting({ id: 'intro-call', title: '+ New Call' });
-        navigate('/', true);
-      }
+      await invoke('api_delete_meeting', { meetingId: item.id });
+      Analytics.trackMeetingDeleted(item.id);
     } catch (error) {
       console.error('Failed to delete meeting:', error);
-      toast.error("Failed to delete meeting", {
-        description: error instanceof Error ? error.message : String(error)
+      // The Session was only hidden, so restoring the list is enough.
+      setMeetings([...meetings, item]);
+      toast.error('Failed to delete Session', {
+        description: error instanceof Error ? error.message : String(error),
       });
     }
   };
 
-  const handleDeleteConfirm = () => {
-    if (deleteModalState.itemId) {
-      handleDelete(deleteModalState.itemId);
-    }
-    setDeleteModalState({ isOpen: false, itemId: null });
+  const undoDelete = (item: CurrentMeeting) => {
+    clearTimeout(deleteTimers.current[item.id]);
+    delete deleteTimers.current[item.id];
+    setPendingDeletions((current) => {
+      const { [item.id]: _restored, ...rest } = current;
+      return rest;
+    });
   };
 
-  // Handle modal editing of meeting names
-  const handleEditStart = (meetingId: string, currentTitle: string) => {
-    setEditModalState({
-      isOpen: true,
-      meetingId: meetingId,
-      currentTitle: currentTitle
+  const handleDelete = (itemId: string) => {
+    const item = meetings.find((m: CurrentMeeting) => m.id === itemId);
+    if (!item || deleteTimers.current[itemId]) return;
+
+    setPendingDeletions((current) => ({ ...current, [itemId]: item }));
+
+    if (currentMeeting?.id === itemId) {
+      setCurrentMeeting({ id: 'intro-call', title: '+ New Call' });
+      navigate('/', true);
+    }
+
+    deleteTimers.current[itemId] = setTimeout(() => { void commitDelete(item); }, UNDO_WINDOW_MS);
+
+    toast(`Deleted "${item.title}"`, {
+      description: 'The recording and transcript are removed when this closes.',
+      duration: UNDO_WINDOW_MS,
+      action: { label: 'Undo', onClick: () => undoDelete(item) },
     });
+  };
+
+  // Never destroy anything on unmount: a Session still inside its undo window
+  // stays on disk and reappears on the next launch.
+  useEffect(() => {
+    const timers = deleteTimers.current;
+    return () => { Object.values(timers).forEach(clearTimeout); };
+  }, []);
+
+  const handleEditStart = (meetingId: string, currentTitle: string) => {
+    setEditingMeetingId(meetingId);
     setEditingTitle(currentTitle);
   };
 
   const handleEditConfirm = async () => {
     const newTitle = editingTitle.trim();
-    const meetingId = editModalState.meetingId;
+    const meetingId = editingMeetingId;
 
     if (!meetingId) return;
 
@@ -405,8 +407,7 @@ const Sidebar: React.FC = () => {
 
       toast.success("Meeting title updated successfully");
 
-      // Close modal and reset state
-      setEditModalState({ isOpen: false, meetingId: null, currentTitle: '' });
+      setEditingMeetingId(null);
       setEditingTitle('');
     } catch (error) {
       console.error('Failed to update meeting title:', error);
@@ -417,9 +418,39 @@ const Sidebar: React.FC = () => {
   };
 
   const handleEditCancel = () => {
-    setEditModalState({ isOpen: false, meetingId: null, currentTitle: '' });
+    setEditingMeetingId(null);
     setEditingTitle('');
   };
+
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useKeyboardShortcuts(
+    useMemo(
+      () => [
+        {
+          key: 'k',
+          mod: true,
+          allowInInput: true,
+          handler: () => {
+            if (isCollapsed) toggleCollapse();
+            searchInputRef.current?.focus();
+            searchInputRef.current?.select();
+          },
+        },
+        {
+          key: 'b',
+          mod: true,
+          handler: toggleCollapse,
+        },
+        {
+          key: 'r',
+          mod: true,
+          handler: () => { if (!isRecording) handleRecordingToggle(); },
+        },
+      ],
+      [isCollapsed, isRecording, toggleCollapse, handleRecordingToggle],
+    ),
+  );
 
   const toggleFolder = (folderId: string) => {
     // Normal toggle behavior for all folders
@@ -558,6 +589,7 @@ const Sidebar: React.FC = () => {
   };
 
   const renderItem = (item: SidebarItem, depth = 0) => {
+    if (pendingDeletions[item.id]) return null;
     const isExpanded = expandedFolders.has(item.id);
     const paddingLeft = `${depth * 12 + 12}px`;
     const isActive = item.type === 'file' && currentMeeting?.id === item.id;
@@ -579,7 +611,11 @@ const Sidebar: React.FC = () => {
             } cursor-pointer`
             }`}
           style={item.type === 'folder' && depth === 0 ? {} : { paddingLeft }}
+          onDoubleClick={() => {
+            if (item.type === 'file' && isMeetingItem) handleEditStart(item.id, item.title);
+          }}
           onClick={() => {
+            if (editingMeetingId === item.id) return;
             if (item.type === 'folder') {
               toggleFolder(item.id);
             } else {
@@ -619,26 +655,43 @@ const Sidebar: React.FC = () => {
                     <Plus className="w-3.5 h-3.5 text-blue-600" />
                   </div>
                 )}
-                <span className="flex-1 break-words">{item.title}</span>
-                {isMeetingItem && (
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                {editingMeetingId === item.id ? (
+                  <input
+                    type="text"
+                    value={editingTitle}
+                    autoFocus
+                    aria-label="Session title"
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => setEditingTitle(e.target.value)}
+                    onBlur={() => void handleEditConfirm()}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') void handleEditConfirm();
+                      else if (e.key === 'Escape') handleEditCancel();
+                    }}
+                    className="flex-1 min-w-0 rounded border border-blue-400 bg-white px-1.5 py-0.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                ) : (
+                  <span className="flex-1 break-words">{item.title}</span>
+                )}
+                {isMeetingItem && editingMeetingId !== item.id && (
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-150">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleEditStart(item.id, item.title);
                       }}
                       className="hover:text-blue-600 p-1 rounded-md hover:bg-blue-50 flex-shrink-0"
-                      aria-label="Edit meeting title"
+                      aria-label={`Rename ${item.title}`}
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setDeleteModalState({ isOpen: true, itemId: item.id });
+                        handleDelete(item.id);
                       }}
                       className="hover:text-red-600 p-1 rounded-md hover:bg-red-50 flex-shrink-0"
-                      aria-label="Delete meeting"
+                      aria-label={`Delete ${item.title}`}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -702,7 +755,7 @@ const Sidebar: React.FC = () => {
 
                 <div className="relative mb-1">
                   <InputGroup >
-                    <InputGroupInput placeholder='Search meeting content...' value={searchQuery}
+                    <InputGroupInput ref={searchInputRef} placeholder='Search Sessions  (⌘K)' value={searchQuery}
                       onChange={(e) => handleSearchChange(e.target.value)}
                     />
                     <InputGroupAddon>
@@ -821,64 +874,6 @@ const Sidebar: React.FC = () => {
         )}
       </div>
 
-      {/* Confirmation Modal for Delete */}
-      <ConfirmationModal
-        isOpen={deleteModalState.isOpen}
-        text="Are you sure you want to delete this meeting? This action cannot be undone."
-        onConfirm={handleDeleteConfirm}
-        onCancel={() => setDeleteModalState({ isOpen: false, itemId: null })}
-      />
-
-      {/* Edit Meeting Title Modal */}
-      <Dialog open={editModalState.isOpen} onOpenChange={(open) => {
-        if (!open) handleEditCancel();
-      }}>
-        <DialogContent className="sm:max-w-[425px]">
-          <VisuallyHidden>
-            <DialogTitle>Edit Meeting Title</DialogTitle>
-          </VisuallyHidden>
-          <div className="py-4">
-            <h3 className="text-lg font-semibold mb-4">Edit Meeting Title</h3>
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="meeting-title" className="block text-sm font-medium text-gray-700 mb-2">
-                  Meeting Title
-                </label>
-                <input
-                  id="meeting-title"
-                  type="text"
-                  value={editingTitle}
-                  onChange={(e) => setEditingTitle(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleEditConfirm();
-                    } else if (e.key === 'Escape') {
-                      handleEditCancel();
-                    }
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter meeting title"
-                  autoFocus
-                />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <button
-              onClick={handleEditCancel}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleEditConfirm}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
-            >
-              Save
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

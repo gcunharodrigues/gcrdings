@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Analytics from '@/lib/analytics';
 import { invoke } from '@tauri-apps/api/core';
 import { useRecordingState } from '@/contexts/RecordingStateContext';
+import { ConfirmationModal } from '@/components/ConfirmationModel/confirmation-modal';
 
 
 interface SidebarItem {
@@ -88,12 +89,14 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
 
+  // A blocked navigation parks the target here so the guard can be answered in
+  // an in-app dialog instead of the OS confirm sheet. navigate() stays
+  // synchronous because every caller branches on its boolean result.
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+
   const navigate = React.useCallback((path: string, bypassGuard = false) => {
-    if (
-      !bypassGuard &&
-      hasUnsavedReviewChangesRef.current &&
-      !window.confirm('You have unsaved transcript changes. Leave this Session and discard them?')
-    ) {
+    if (!bypassGuard && hasUnsavedReviewChangesRef.current) {
+      setPendingNavigation(path);
       return false;
     }
     router.push(path);
@@ -335,6 +338,19 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 
     }}>
       {children}
+      <ConfirmationModal
+        isOpen={pendingNavigation !== null}
+        title="Discard transcript corrections?"
+        text="This Session has unsaved transcript corrections. Leaving now discards them."
+        confirmLabel="Discard and leave"
+        cancelLabel="Stay here"
+        onConfirm={() => {
+          const target = pendingNavigation;
+          setPendingNavigation(null);
+          if (target) router.push(target);
+        }}
+        onCancel={() => setPendingNavigation(null)}
+      />
     </SidebarContext.Provider>
   );
 }
