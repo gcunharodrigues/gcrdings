@@ -11,6 +11,7 @@ import { AgentHandoffMenu } from "@/components/MeetingDetails/AgentHandoffMenu";
 import { ExternalTransferDialog } from "@/components/MeetingDetails/ExternalTransferDialog";
 import { SessionHeader } from "@/components/MeetingDetails/SessionHeader";
 import { MarkersPanel } from "@/components/MeetingDetails/MarkersPanel";
+import { SessionOrganisation } from "@/components/MeetingDetails/SessionOrganisation";
 import { ConfirmationModal } from "@/components/ConfirmationModel/confirmation-modal";
 import { RecordModeSelector } from "@/components/MeetingDetails/RecordModeSelector";
 import { readDefaultRecordMode, readSessionRecordMode, writeDefaultRecordMode, writeSessionRecordMode } from "@/lib/record-mode-preferences";
@@ -116,6 +117,7 @@ export default function PageContent({ meeting, onRefetchTranscripts, hasMore, is
           passageCount={totalCount ?? meeting.transcripts.length}
           durationMs={sessionDurationMs}
         />
+        <SessionOrganisation meetingId={meeting.id} />
         <RecordModeSelector
           mode={mode}
           onChange={applyMode}

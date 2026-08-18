@@ -46,6 +46,7 @@ pub mod ollama;
 pub mod onboarding;
 pub mod openai;
 pub mod openrouter;
+pub mod organisation;
 pub mod parakeet_engine;
 pub mod providers;
 
@@ -679,6 +680,19 @@ pub fn run() {
             providers::commands::api_preview_provider_transfer,
             providers::commands::api_confirm_provider_transfer,
             verifiable_record::commands::api_get_verifiable_record,
+            organisation::commands::api_list_folders,
+            organisation::commands::api_create_folder,
+            organisation::commands::api_rename_folder,
+            organisation::commands::api_move_folder,
+            organisation::commands::api_delete_folder,
+            organisation::commands::api_set_session_folder,
+            organisation::commands::api_list_tags,
+            organisation::commands::api_create_tag,
+            organisation::commands::api_rename_tag,
+            organisation::commands::api_delete_tag,
+            organisation::commands::api_get_session_tags,
+            organisation::commands::api_attach_tag,
+            organisation::commands::api_detach_tag,
             markers::commands::api_add_pending_marker,
             markers::commands::api_get_pending_markers,
             markers::commands::api_clear_pending_markers,

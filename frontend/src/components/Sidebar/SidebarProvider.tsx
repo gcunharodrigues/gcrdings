@@ -21,6 +21,8 @@ export interface CurrentMeeting {
   title: string;
   /** ISO timestamp. Absent for the placeholder entries the sidebar creates. */
   createdAt?: string;
+  /** Null means the Session sits at the root, outside every folder. */
+  folderId?: string | null;
 }
 
 // Search result type for transcript search
@@ -110,13 +112,14 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const fetchMeetings = React.useCallback(async () => {
     if (serverAddress) {
       try {
-        const meetings = await invoke('api_get_meetings') as Array<{ id: string, title: string, created_at?: string }>;
+        const meetings = await invoke('api_get_meetings') as Array<{ id: string, title: string, created_at?: string, folder_id?: string | null }>;
         // created_at was being dropped here, which is why the list had no dates
         // and no way to group by recency.
         const transformedMeetings = meetings.map((meeting: any) => ({
           id: meeting.id,
           title: meeting.title,
           createdAt: meeting.created_at ?? meeting.updated_at,
+          folderId: meeting.folder_id ?? null,
         }));
         setMeetings(transformedMeetings);
         Analytics.trackBackendConnection(true);
@@ -146,7 +149,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
       title: 'Sessions',
       type: 'folder' as const,
       children: [
-        ...meetings.map(meeting => ({ id: meeting.id, title: meeting.title, createdAt: meeting.createdAt, type: 'file' as const }))
+        ...meetings.map(meeting => ({ id: meeting.id, title: meeting.title, createdAt: meeting.createdAt, folderId: meeting.folderId, type: 'file' as const }))
       ]
     },
   ];

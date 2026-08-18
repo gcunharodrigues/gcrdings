@@ -17,6 +17,7 @@ import { useImportDialog } from '@/contexts/ImportDialogContext';
 import { useConfig } from '@/contexts/ConfigContext';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { SidebarAction } from './SidebarAction';
+import { OrganisationFilter, type OrganisationSelection } from './OrganisationFilter';
 import { groupByRecency, shortDateLabel } from '@/lib/session-grouping';
 
 import { MessageToast } from '../MessageToast';
@@ -32,6 +33,7 @@ interface SidebarItem {
   title: string;
   type: 'folder' | 'file';
   createdAt?: string;
+  folderId?: string | null;
   children?: SidebarItem[];
 }
 
@@ -426,6 +428,49 @@ const Sidebar: React.FC = () => {
     setEditingTitle('');
   };
 
+  const [organisationFilter, setOrganisationFilter] = useState<OrganisationSelection>({
+    folderId: null,
+    tagIds: [],
+  });
+  // meetingId -> tagIds. Filtering by tag otherwise means one query per row.
+  const [tagMembership, setTagMembership] = useState<Record<string, string[]>>({});
+
+  useEffect(() => {
+    if (organisationFilter.tagIds.length === 0) return;
+    let cancelled = false;
+
+    const loadMembership = async () => {
+      const entries = await Promise.all(
+        meetings.map(async (meeting: CurrentMeeting) => {
+          try {
+            const tags = await invoke<Array<{ id: string }>>('api_get_session_tags', {
+              meetingId: meeting.id,
+            });
+            return [meeting.id, tags.map((tag) => tag.id)] as const;
+          } catch {
+            return [meeting.id, []] as const;
+          }
+        }),
+      );
+      if (!cancelled) setTagMembership(Object.fromEntries(entries));
+    };
+
+    void loadMembership();
+    return () => { cancelled = true; };
+  }, [meetings, organisationFilter.tagIds.length]);
+
+  // A Session must satisfy the folder AND every selected tag. Tags narrow
+  // rather than widen: picking two means "both", which is what people expect
+  // from a filing system even though search boxes usually mean "either".
+  const matchesOrganisation = useCallback((item: SidebarItem) => {
+    if (organisationFilter.folderId !== null && item.folderId !== organisationFilter.folderId) {
+      return false;
+    }
+    if (organisationFilter.tagIds.length === 0) return true;
+    const owned = tagMembership[item.id] ?? [];
+    return organisationFilter.tagIds.every((tagId) => owned.includes(tagId));
+  }, [organisationFilter, tagMembership]);
+
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useKeyboardShortcuts(
@@ -780,6 +825,10 @@ const Sidebar: React.FC = () => {
               </div>
             )}
 
+            {!isCollapsed && (
+              <OrganisationFilter selection={organisationFilter} onChange={setOrganisationFilter} />
+            )}
+
             {/* Scrollable meeting items */}
             {!isCollapsed && (
               <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
@@ -787,7 +836,7 @@ const Sidebar: React.FC = () => {
                   .filter(item => item.type === 'folder' && expandedFolders.has(item.id) && item.children)
                   .map(item => (
                     <div key={`${item.id}-children`} className="mx-3">
-                      {groupByRecency(item.children!.filter(child => !pendingDeletions[child.id])).map(group => (
+                      {groupByRecency(item.children!.filter(child => !pendingDeletions[child.id] && matchesOrganisation(child))).map(group => (
                         <div key={group.bucket}>
                           <p className="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/70">
                             {group.label}
