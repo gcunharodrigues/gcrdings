@@ -98,7 +98,7 @@ export default function PageContent({ meeting, onRefetchTranscripts, hasMore, is
     : meeting.transcripts.reduce((longest: number, transcript: Transcript) => Math.max(longest, (transcript.audio_end_time ?? 0) * 1000), 0) || undefined;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }} className="flex h-screen flex-col bg-gray-50">
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }} className="flex h-screen flex-col bg-background">
       <ConfirmationModal
         isOpen={discardPrompt}
         title="Discard transcript corrections?"
@@ -108,7 +108,7 @@ export default function PageContent({ meeting, onRefetchTranscripts, hasMore, is
         onConfirm={() => answerDiscardPrompt(true)}
         onCancel={() => answerDiscardPrompt(false)}
       />
-      <header className="flex min-h-12 items-center gap-4 border-b border-gray-200 bg-white px-4 py-2">
+      <header className="flex min-h-12 items-center gap-4 border-b border-border bg-card px-4 py-2">
         <SessionHeader
           title={meeting.title}
           createdAt={meeting.created_at}
@@ -125,17 +125,21 @@ export default function PageContent({ meeting, onRefetchTranscripts, hasMore, is
           disabled={findings.record?.generation_status === "processing"}
         />
         <ExternalTransferDialog meetingId={meeting.id} disabled={Boolean(reviewRecord.state?.dirty)} />
-        <AgentHandoffMenu meetingId={meeting.id} disabled={Boolean(reviewRecord.state?.dirty)} />
+        <AgentHandoffMenu
+          meetingId={meeting.id}
+          hasUnsavedTranscript={Boolean(reviewRecord.state?.dirty)}
+          onSaveTranscript={savePrincipal}
+        />
       </header>
       <main className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(18rem,1fr)_minmax(28rem,2fr)] lg:overflow-hidden">
-        <section aria-label="Session findings" data-review-column="context" className="flex min-h-0 flex-col overflow-hidden bg-white">
+        <section aria-label="Session findings" data-review-column="context" className="flex min-h-0 flex-col overflow-hidden bg-card">
           <SummaryPanel record={findings.record} loadError={findings.error} hasUnsavedTranscript={Boolean(reviewRecord.state?.dirty)} mode={mode} onGenerate={() => void findings.generate()} onCancel={() => void findings.cancel()} onSeek={seek} />
           {reviewRecord.state && <ParticipantsPanel state={reviewRecord.state} dispatch={reviewRecord.dispatch} />}
         </section>
         {reviewRecord.state ? (
           <TranscriptPanel state={reviewRecord.state} sourceTranscripts={meeting.transcripts} dispatch={reviewRecord.dispatch} save={savePrincipal} reload={reviewRecord.reload} audioPlayer={audioPlayer} hasMore={hasMore} isLoadingMore={isLoadingMore} totalCount={totalCount} loadedCount={loadedCount} onLoadMore={onLoadMore} meetingId={meeting.id} meetingFolderPath={meeting.folder_path} onRefetchTranscripts={onRefetchTranscripts} confirmDestructiveOperation={confirmDestructiveOperation} onOpenMeetingFolder={meetingOperations.handleOpenMeetingFolder} />
         ) : (
-          <section aria-live="polite" data-review-column="transcript" className="flex items-center justify-center border-x border-gray-200 bg-white p-8 text-center"><div><p className="text-sm text-gray-700">{reviewRecord.loadError ?? "Loading principal transcript…"}</p>{reviewRecord.loadError && <button type="button" onClick={() => void reviewRecord.reload()} className="mt-3 rounded bg-blue-700 px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2">Retry</button>}</div></section>
+          <section aria-live="polite" data-review-column="transcript" className="flex items-center justify-center border-x border-border bg-card p-8 text-center"><div><p className="text-sm text-foreground/90">{reviewRecord.loadError ?? "Loading principal transcript…"}</p>{reviewRecord.loadError && <button type="button" onClick={() => void reviewRecord.reload()} className="mt-3 rounded bg-blue-700 px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2">Retry</button>}</div></section>
         )}
       </main>
     </motion.div>

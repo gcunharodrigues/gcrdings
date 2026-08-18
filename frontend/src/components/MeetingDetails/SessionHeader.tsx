@@ -35,10 +35,10 @@ export function SessionHeader({ title, createdAt, passageCount, durationMs }: Se
 
   return (
     <div className="min-w-0 flex-1">
-      <h1 className="truncate font-semibold text-gray-900" title={title}>
+      <h1 className="truncate font-semibold text-foreground" title={title}>
         {title}
       </h1>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-500">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
         {created && (
           <span className="flex items-center gap-1">
             <CalendarDays className="size-3" aria-hidden="true" />

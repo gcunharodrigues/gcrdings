@@ -75,12 +75,11 @@ export function TranscriptPanel({
     overscan: 5,
   });
 
+  // ⌘S and ⌘Z are bound in useReviewRecord, next to the state they act on.
+  // Binding them here as well fired both listeners, so one ⌘Z undid two edits.
   useKeyboardShortcuts(
     useMemo(
       () => [
-        { key: 's', mod: true, allowInInput: true, handler: () => { if (state.dirty && !saving) void save(); } },
-        { key: 'z', mod: true, handler: () => { if (state.past.length && !saving) dispatch({ type: "undo" }); } },
-        { key: 'z', mod: true, shift: true, handler: () => { if (state.future.length && !saving) dispatch({ type: "redo" }); } },
         {
           key: ' ',
           handler: () => {
@@ -90,7 +89,7 @@ export function TranscriptPanel({
           },
         },
       ],
-      [audioPlayer, dispatch, save, saving, state.dirty, state.future.length, state.past.length],
+      [audioPlayer],
     ),
   );
 
@@ -108,14 +107,14 @@ export function TranscriptPanel({
     <section
       aria-labelledby="principal-transcript-heading"
       data-review-column="transcript"
-      className="flex min-h-0 flex-col overflow-hidden border-x border-gray-200 bg-white"
+      className="flex min-h-0 flex-col overflow-hidden border-x border-border bg-card"
     >
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 p-4">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border p-4">
         <div>
-          <h2 id="principal-transcript-heading" className="font-semibold text-gray-900">
+          <h2 id="principal-transcript-heading" className="font-semibold text-foreground">
             Principal transcript
           </h2>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted-foreground">
             {loadedCount ?? visibleIds.length} of {totalCount ?? state.present.transcriptOrder.length} passages
           </p>
         </div>
@@ -165,7 +164,7 @@ export function TranscriptPanel({
           <button
             type="button"
             onClick={() => setConfirmReload(true)}
-            className="rounded border border-red-300 bg-white px-3 py-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700"
+            className="rounded border border-red-300 bg-card px-3 py-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700"
           >
             Reload latest
           </button>
@@ -186,7 +185,7 @@ export function TranscriptPanel({
 
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto p-4">
         {visibleIds.length === 0 ? (
-          <p className="rounded border border-dashed p-6 text-center text-sm text-gray-600">
+          <p className="rounded border border-dashed p-6 text-center text-sm text-muted-foreground">
             No transcript passages are available yet.
           </p>
         ) : (
@@ -202,7 +201,7 @@ export function TranscriptPanel({
               ref={virtualizer.measureElement}
               data-index={row.index}
               aria-current={selectedId === id ? "true" : undefined}
-              className={`absolute left-0 top-0 w-full rounded-lg border p-3 focus-within:ring-2 focus-within:ring-blue-600 ${selectedId === id ? "border-blue-600 bg-blue-50" : "border-gray-200 bg-white"}`}
+              className={`absolute left-0 top-0 w-full rounded-lg border p-3 focus-within:ring-2 focus-within:ring-blue-600 ${selectedId === id ? "border-blue-600 bg-blue-50" : "border-border bg-card"}`}
               style={{ transform: `translateY(${row.start}px)` }}
             >
               <div className="mb-2 flex items-center gap-2">
@@ -224,7 +223,7 @@ export function TranscriptPanel({
                     transcriptId: id,
                     participantId: event.target.value,
                   })}
-                  className="min-w-0 flex-1 rounded border border-gray-300 px-2 py-1 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                  className="min-w-0 flex-1 rounded border border-border px-2 py-1 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
                 >
                   {!assignedParticipant && (
                     <option value={transcript.participantId}>Unknown participant · {transcript.participantId}</option>
@@ -247,7 +246,7 @@ export function TranscriptPanel({
                   text: event.target.value,
                 })}
                 rows={Math.max(2, Math.ceil(transcript.text.length / 80))}
-                className="w-full resize-y rounded border border-gray-300 p-2 text-sm leading-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                className="w-full resize-y rounded border border-border p-2 text-sm leading-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
               />
               {transcript.text.length === 0 && (
                 <p className="mt-1 text-xs text-amber-800">This saved passage will be empty.</p>
@@ -262,7 +261,7 @@ export function TranscriptPanel({
             type="button"
             onClick={onLoadMore}
             disabled={isLoadingMore}
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-50"
+            className="w-full rounded border border-border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-50"
           >
             {isLoadingMore ? "Loading…" : "Load more passages"}
           </button>

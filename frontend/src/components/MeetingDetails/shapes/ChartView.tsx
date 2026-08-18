@@ -24,11 +24,11 @@ function BarRow({ datum, max }: { datum: BarDatum; max: number }) {
   const width = max > 0 ? Math.max(2, (datum.value / max) * 100) : 0;
   return (
     <div className="grid grid-cols-[minmax(6rem,9rem)_1fr_auto] items-center gap-2">
-      <span className="truncate text-xs text-gray-700" title={datum.label}>{datum.label}</span>
-      <div className="h-3 rounded-sm bg-gray-100">
+      <span className="truncate text-xs text-foreground/90" title={datum.label}>{datum.label}</span>
+      <div className="h-3 rounded-sm bg-muted">
         <div className="h-full rounded-sm" style={{ width: `${width}%`, backgroundColor: datum.color }} />
       </div>
-      <span className="tabular-nums text-xs text-gray-600">{datum.formatted}</span>
+      <span className="tabular-nums text-xs text-muted-foreground">{datum.formatted}</span>
     </div>
   );
 }
@@ -37,9 +37,9 @@ function BarGroup({ title, data, emptyMessage }: { title: string; data: BarDatum
   const max = Math.max(0, ...data.map((datum) => datum.value));
   return (
     <section>
-      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{title}</h2>
+      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</h2>
       {data.length === 0 ? (
-        <p className="rounded border border-dashed p-3 text-sm text-gray-600">{emptyMessage}</p>
+        <p className="rounded border border-dashed p-3 text-sm text-muted-foreground">{emptyMessage}</p>
       ) : (
         <div className="space-y-1.5">
           {data.map((datum) => <BarRow key={datum.label} datum={datum} max={max} />)}
@@ -90,7 +90,7 @@ export function ChartView({ record }: ShapeProps) {
         data={byParticipant}
         emptyMessage="Assign passages to participants to see who spoke for how long."
       />
-      <p className="text-xs text-gray-500">
+      <p className="text-xs text-muted-foreground">
         Speaking time is measured from the principal transcript, so corrections change it.
       </p>
     </div>

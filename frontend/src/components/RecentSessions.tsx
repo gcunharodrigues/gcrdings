@@ -17,8 +17,8 @@ export function RecentSessions() {
   if (recent.length === 0) {
     return (
       <div className="mx-auto mt-8 max-w-md text-center">
-        <p className="text-sm text-gray-600">No Sessions yet.</p>
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="text-sm text-muted-foreground">No Sessions yet.</p>
+        <p className="mt-1 text-xs text-muted-foreground">
           Press the record button below, or bring in audio you already have.
         </p>
         <button
@@ -35,10 +35,10 @@ export function RecentSessions() {
 
   return (
     <nav aria-label="Recent Sessions" className="mx-auto mt-8 w-full max-w-2xl px-4 text-left">
-      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         Recent Sessions
       </h2>
-      <ul className="divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-200 bg-white">
+      <ul className="divide-y divide-gray-100 overflow-hidden rounded-lg border border-border bg-card">
         {recent.map((session) => (
           <li key={session.id}>
             <button
@@ -48,10 +48,10 @@ export function RecentSessions() {
                   setCurrentMeeting({ id: session.id, title: session.title });
                 }
               }}
-              className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-600"
+              className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-600"
             >
-              <FileText className="size-4 shrink-0 text-gray-400" aria-hidden="true" />
-              <span className="truncate text-sm text-gray-800">{session.title}</span>
+              <FileText className="size-4 shrink-0 text-muted-foreground/70" aria-hidden="true" />
+              <span className="truncate text-sm text-foreground">{session.title}</span>
             </button>
           </li>
         ))}

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { OnboardingContainer } from '../OnboardingContainer';
 import { PermissionRow } from '../shared';
 import { useOnboarding } from '@/contexts/OnboardingContext';
+import { log } from '@/lib/logger';
 
 export function PermissionsStep() {
   const { setPermissionStatus, setPermissionsSkipped, permissions, goNext } = useOnboarding();
@@ -13,9 +14,9 @@ export function PermissionsStep() {
   // Check permissions - only logs current state, doesn't auto-authorize
   // Actual permission checks are done via explicit user actions (clicking Enable)
   const checkPermissions = useCallback(async () => {
-    console.log('[PermissionsStep] Current permission states:');
-    console.log(`  - Microphone: ${permissions.microphone}`);
-    console.log(`  - System Audio: ${permissions.systemAudio}`);
+    log.debug('[PermissionsStep] Current permission states:');
+    log.debug(`  - Microphone: ${permissions.microphone}`);
+    log.debug(`  - System Audio: ${permissions.systemAudio}`);
     // Don't auto-set permissions based on device availability
     // Permissions should only be set after explicit user action via Enable button
   }, [permissions.microphone, permissions.systemAudio]);
@@ -39,9 +40,9 @@ export function PermissionsStep() {
 
     setIsPending(true);
     try {
-      console.log('[PermissionsStep] Triggering microphone permission...');
+      log.debug('[PermissionsStep] Triggering microphone permission...');
       const granted = await invoke<boolean>('trigger_microphone_permission');
-      console.log('[PermissionsStep] Microphone permission result:', granted);
+      log.debug('[PermissionsStep] Microphone permission result:', granted);
 
       if (granted) {
         setPermissionStatus('microphone', 'authorized');
@@ -71,19 +72,19 @@ export function PermissionsStep() {
 
     setIsPending(true);
     try {
-      console.log('[PermissionsStep] Triggering Audio Capture permission...');
+      log.debug('[PermissionsStep] Triggering Audio Capture permission...');
       // Backend creates Core Audio tap, captures audio, and verifies it's not silence
       // Returns true if permission granted and audio verified, false if denied (silence)
       const granted = await invoke<boolean>('trigger_system_audio_permission_command');
-      console.log('[PermissionsStep] System audio permission result:', granted);
+      log.debug('[PermissionsStep] System audio permission result:', granted);
 
       if (granted) {
         setPermissionStatus('systemAudio', 'authorized');
-        console.log('[PermissionsStep] Audio Capture permission verified - audio is not silence');
+        log.debug('[PermissionsStep] Audio Capture permission verified - audio is not silence');
       } else {
         // Permission was denied (audio is silence)
         setPermissionStatus('systemAudio', 'denied');
-        console.log('[PermissionsStep] Audio Capture permission denied - audio is silence');
+        log.debug('[PermissionsStep] Audio Capture permission denied - audio is silence');
       }
     } catch (err) {
       console.error('[PermissionsStep] Failed to request system audio permission:', err);

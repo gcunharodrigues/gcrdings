@@ -7,8 +7,11 @@ import { invoke } from "@tauri-apps/api/core"
 import Analytics from "@/lib/analytics"
 import AnalyticsConsentSwitch from "./AnalyticsConsentSwitch"
 import { useConfig, NotificationSettings } from "@/contexts/ConfigContext"
+import { useTheme, type ThemePreference } from "@/contexts/ThemeContext"
 
+import { log } from '@/lib/logger';
 export function PreferenceSettings() {
+  const { preference: themePreference, setPreference: setThemePreference } = useTheme();
   const {
     notificationSettings,
     storageLocations,
@@ -80,7 +83,7 @@ export function PreferenceSettings() {
     if (!notificationSettings) return;
 
     const handleUpdateNotificationSettings = async () => {
-      console.log("Updating notification settings to:", notificationsEnabled);
+      log.debug("Updating notification settings to:", notificationsEnabled);
 
       try {
         // Update the notification preferences
@@ -93,10 +96,10 @@ export function PreferenceSettings() {
           }
         };
 
-        console.log("Calling updateNotificationSettings with:", updatedSettings);
+        log.debug("Calling updateNotificationSettings with:", updatedSettings);
         await updateNotificationSettings(updatedSettings);
         setPreviousNotificationsEnabled(notificationsEnabled);
-        console.log("Successfully updated notification settings to:", notificationsEnabled);
+        log.debug("Successfully updated notification settings to:", notificationsEnabled);
 
         // Track notification preference change - only fires when user manually toggles
         await Analytics.track('notification_settings_changed', {
@@ -148,34 +151,60 @@ export function PreferenceSettings() {
 
   return (
     <div className="space-y-6">
+      {/* Appearance Section */}
+      <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
+        <h3 className="text-lg font-semibold text-foreground mb-2">Appearance</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Match the system, or pin one theme regardless of what macOS does.
+        </p>
+        <div role="radiogroup" aria-label="Theme" className="flex gap-2">
+          {(['system', 'light', 'dark'] as ThemePreference[]).map((option) => (
+            <button
+              key={option}
+              type="button"
+              role="radio"
+              aria-checked={themePreference === option}
+              onClick={() => setThemePreference(option)}
+              className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                themePreference === option
+                  ? 'border-foreground bg-secondary text-foreground'
+                  : 'border-border text-muted-foreground hover:bg-accent'
+              }`}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Notifications Section */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+      <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Notifications</h3>
-            <p className="text-sm text-gray-600">Enable or disable notifications of start and end of meeting</p>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Notifications</h3>
+            <p className="text-sm text-muted-foreground">Enable or disable notifications of start and end of meeting</p>
           </div>
           <Switch checked={notificationsEnabledValue} onCheckedChange={setNotificationsEnabled} />
         </div>
       </div>
 
       {/* Data Storage Locations Section */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Data Storage Locations</h3>
-        <p className="text-sm text-gray-600 mb-6">
+      <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
+        <h3 className="text-lg font-semibold text-foreground mb-4">Data Storage Locations</h3>
+        <p className="text-sm text-muted-foreground mb-6">
           View and access where gcrdings stores your data
         </p>
 
         <div className="space-y-4">
           {/* Database Location */}
-          {/* <div className="p-4 border rounded-lg bg-gray-50">
+          {/* <div className="p-4 border rounded-lg bg-muted/40">
             <div className="font-medium mb-2">Database</div>
-            <div className="text-sm text-gray-600 mb-3 break-all font-mono text-xs">
+            <div className="text-sm text-muted-foreground mb-3 break-all font-mono text-xs">
               {storageLocations?.database || 'Loading...'}
             </div>
             <button
               onClick={() => handleOpenFolder('database')}
-              className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-100 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 text-sm border border-border rounded-md hover:bg-accent transition-colors"
             >
               <FolderOpen className="w-4 h-4" />
               Open Folder
@@ -183,14 +212,14 @@ export function PreferenceSettings() {
           </div> */}
 
           {/* Models Location */}
-          {/* <div className="p-4 border rounded-lg bg-gray-50">
+          {/* <div className="p-4 border rounded-lg bg-muted/40">
             <div className="font-medium mb-2">Whisper Models</div>
-            <div className="text-sm text-gray-600 mb-3 break-all font-mono text-xs">
+            <div className="text-sm text-muted-foreground mb-3 break-all font-mono text-xs">
               {storageLocations?.models || 'Loading...'}
             </div>
             <button
               onClick={() => handleOpenFolder('models')}
-              className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-100 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 text-sm border border-border rounded-md hover:bg-accent transition-colors"
             >
               <FolderOpen className="w-4 h-4" />
               Open Folder
@@ -198,14 +227,14 @@ export function PreferenceSettings() {
           </div> */}
 
           {/* Recordings Location */}
-          <div className="p-4 border rounded-lg bg-gray-50">
+          <div className="p-4 border rounded-lg bg-muted/40">
             <div className="font-medium mb-2">Meeting Recordings</div>
-            <div className="text-sm text-gray-600 mb-3 break-all font-mono text-xs">
+            <div className="text-sm text-muted-foreground mb-3 break-all font-mono text-xs">
               {storageLocations?.recordings || 'Loading...'}
             </div>
             <button
               onClick={() => handleOpenFolder('recordings')}
-              className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-100 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 text-sm border border-border rounded-md hover:bg-accent transition-colors"
             >
               <FolderOpen className="w-4 h-4" />
               Open Folder
@@ -221,7 +250,7 @@ export function PreferenceSettings() {
       </div>
 
       {/* Analytics Section */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+      <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
         <AnalyticsConsentSwitch />
       </div>
     </div>

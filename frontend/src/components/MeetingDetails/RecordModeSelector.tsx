@@ -44,7 +44,7 @@ function OptionRow({
       disabled={Boolean(disabledReason)}
       aria-pressed={selected}
       className={`flex w-full items-start gap-2 rounded px-2 py-1.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-50 ${
-        selected ? "bg-blue-50" : "hover:bg-gray-50"
+        selected ? "bg-blue-50" : "hover:bg-muted/40"
       }`}
     >
       <Check
@@ -52,8 +52,8 @@ function OptionRow({
         className={`mt-0.5 size-3.5 shrink-0 ${selected ? "text-blue-700" : "text-transparent"}`}
       />
       <span>
-        <span className="block text-sm font-medium text-gray-900">{label}</span>
-        <span className="block text-xs text-gray-600">{disabledReason ?? description}</span>
+        <span className="block text-sm font-medium text-foreground">{label}</span>
+        <span className="block text-xs text-muted-foreground">{disabledReason ?? description}</span>
       </span>
     </button>
   );
@@ -86,8 +86,8 @@ export function RecordModeSelector({
       <PopoverContent align="end" className="w-[24rem] p-0">
         <div className="max-h-[28rem] overflow-y-auto p-3">
           <section>
-            <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">Record type</h3>
-            <p className="mb-1.5 text-xs text-gray-500">Which findings are extracted.</p>
+            <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Record type</h3>
+            <p className="mb-1.5 text-xs text-muted-foreground">Which findings are extracted.</p>
             <div className="space-y-0.5">
               {(Object.keys(RECORD_TYPE_LABELS) as RecordType[]).map((recordType) => (
                 <OptionRow
@@ -107,9 +107,9 @@ export function RecordModeSelector({
             </div>
           </section>
 
-          <section className="mt-4 border-t border-gray-100 pt-3">
-            <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">Voice</h3>
-            <p className="mb-1.5 text-xs text-gray-500">How the findings are worded.</p>
+          <section className="mt-4 border-t border-border pt-3">
+            <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Voice</h3>
+            <p className="mb-1.5 text-xs text-muted-foreground">How the findings are worded.</p>
             <div className="space-y-0.5">
               {(Object.keys(RECORD_VOICES) as RecordVoice[]).map((voice) => (
                 <OptionRow
@@ -121,14 +121,14 @@ export function RecordModeSelector({
                 />
               ))}
             </div>
-            <p className="mt-2 rounded bg-gray-50 p-2 text-xs italic leading-5 text-gray-700">
+            <p className="mt-2 rounded bg-muted/40 p-2 text-xs italic leading-5 text-foreground/90">
               &ldquo;{RECORD_VOICES[mode.voice].sample}&rdquo;
             </p>
           </section>
 
-          <section className="mt-4 border-t border-gray-100 pt-3">
-            <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">Layout</h3>
-            <p className="mb-1.5 text-xs text-gray-500">How they are shown. Changing this needs no regeneration.</p>
+          <section className="mt-4 border-t border-border pt-3">
+            <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Layout</h3>
+            <p className="mb-1.5 text-xs text-muted-foreground">How they are shown. Changing this needs no regeneration.</p>
             <div className="space-y-0.5">
               {(Object.keys(RECORD_SHAPES) as RecordShape[]).map((shape) => (
                 <OptionRow
@@ -144,8 +144,8 @@ export function RecordModeSelector({
           </section>
         </div>
 
-        <div className="flex items-center justify-between gap-2 border-t border-gray-100 px-3 py-2">
-          <p className="text-xs text-gray-500">
+        <div className="flex items-center justify-between gap-2 border-t border-border px-3 py-2">
+          <p className="text-xs text-muted-foreground">
             {isDefault ? "This is your default." : "Applies to this Session only."}
           </p>
           <Button type="button" variant="ghost" size="sm" onClick={onSaveAsDefault} disabled={isDefault}>
