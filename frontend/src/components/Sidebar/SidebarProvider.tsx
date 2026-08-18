@@ -24,7 +24,7 @@ export interface CurrentMeeting {
 }
 
 // Search result type for transcript search
-interface TranscriptSearchResult {
+export interface TranscriptSearchResult {
   id: string;
   title: string;
   matchContext: string;
@@ -191,7 +191,9 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Function to search through meeting transcripts
-  const searchTranscripts = async (query: string) => {
+  // Memoised: consumers put this in effect dependencies, and a fresh function
+  // identity on every render turned that into an infinite search loop.
+  const searchTranscripts = React.useCallback(async (query: string) => {
     if (!query.trim()) {
       setSearchResults([]);
       return;
@@ -209,7 +211,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsSearching(false);
     }
-  };
+  }, []);
 
   // Summary polling management
   const startSummaryPolling = React.useCallback((

@@ -25,6 +25,7 @@ import { ImportDialogProvider } from '@/contexts/ImportDialogContext'
 import { isAudioExtension, getAudioFormatsDisplayList } from '@/constants/audioFormats'
 
 import { log } from '@/lib/logger';
+import { CommandPalette } from '@/components/CommandPalette';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 
 const sourceSans3 = Source_Sans_3({
@@ -224,6 +225,9 @@ export default function RootLayout({
                         <TooltipProvider>
                           <RecordingPostProcessingProvider>
                             <ImportDialogProvider onOpen={handleOpenImportDialog}>
+                              {/* Inside ImportDialogProvider: the palette offers
+                                  Import Media and so consumes that context. */}
+                              <CommandPalette />
                               {/* Download progress toast provider - listens for background downloads */}
                               <DownloadProgressToastProvider />
 

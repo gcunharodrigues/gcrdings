@@ -4,10 +4,11 @@ import type { Transcript } from "@/types";
 import type { ReviewRecordAction, ReviewRecordState } from "@/lib/review-record";
 import type { SessionAudioPlayer } from "@/hooks/useAudioPlayer";
 import { AudioPlayer } from "@/components/AudioPlayer";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { TranscriptButtonGroup } from "./TranscriptButtonGroup";
 import { ConfirmationModal } from "@/components/ConfirmationModel/confirmation-modal";
+import { ReviewChangesDialog, ReviewChangesTrigger } from "./ReviewChangesDialog";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 
 interface TranscriptPanelProps {
@@ -67,6 +68,7 @@ export function TranscriptPanel({
   const saving = state.saveStatus.type === "saving";
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confirmReload, setConfirmReload] = useState(false);
+  const [showChanges, setShowChanges] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const virtualizer = useVirtualizer({
     count: visibleIds.length,
@@ -93,6 +95,32 @@ export function TranscriptPanel({
     ),
   );
 
+  // The passage currently under the playhead, so playback and text stay in
+  // step. Previously the only link was clicking a timestamp: audio ran on and
+  // the reader had to track where it was by ear.
+  const playingId = useMemo(() => {
+    if (!audioPlayer.isPlaying) return null;
+    let current: string | null = null;
+    for (const id of visibleIds) {
+      const start = sourceById.get(id)?.audio_start_time;
+      if (start === undefined) continue;
+      if (start <= audioPlayer.currentTime) current = id;
+      else break;
+    }
+    return current;
+  }, [audioPlayer.currentTime, audioPlayer.isPlaying, sourceById, visibleIds]);
+
+  // Follow the playhead, but never fight a reader who has scrolled away.
+  const [followPlayhead, setFollowPlayhead] = useState(true);
+  const lastFollowedRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!followPlayhead || !playingId || playingId === lastFollowedRef.current) return;
+    lastFollowedRef.current = playingId;
+    const index = visibleIds.indexOf(playingId);
+    if (index >= 0) virtualizer.scrollToIndex(index, { align: "center" });
+  }, [followPlayhead, playingId, virtualizer, visibleIds]);
+
   const playPassage = async (id: string, seconds?: number) => {
     const index = visibleIds.indexOf(id);
     if (index >= 0) virtualizer.scrollToIndex(index, { align: "center" });
@@ -117,6 +145,15 @@ export function TranscriptPanel({
           <p className="text-xs text-muted-foreground">
             {loadedCount ?? visibleIds.length} of {totalCount ?? state.present.transcriptOrder.length} passages
           </p>
+          <label className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={followPlayhead}
+              onChange={(event) => setFollowPlayhead(event.target.checked)}
+              className="size-3 accent-blue-600"
+            />
+            Follow playback
+          </label>
         </div>
         <TranscriptButtonGroup
           transcriptCount={totalCount ?? visibleIds.length}
@@ -128,6 +165,7 @@ export function TranscriptPanel({
           confirmDestructiveOperation={confirmDestructiveOperation}
         />
         <div className="flex gap-2">
+          <ReviewChangesTrigger state={state} onClick={() => setShowChanges(true)} />
           <button
             type="button"
             onClick={() => dispatch({ type: "undo" })}
@@ -171,6 +209,16 @@ export function TranscriptPanel({
         </div>
       )}
 
+      <ReviewChangesDialog
+        state={state}
+        open={showChanges}
+        onOpenChange={setShowChanges}
+        onSeekPassage={(id) => {
+          setShowChanges(false);
+          void playPassage(id, sourceById.get(id)?.audio_start_time);
+        }}
+      />
+
       <ConfirmationModal
         isOpen={confirmReload}
         title="Discard this draft?"
@@ -201,7 +249,13 @@ export function TranscriptPanel({
               ref={virtualizer.measureElement}
               data-index={row.index}
               aria-current={selectedId === id ? "true" : undefined}
-              className={`absolute left-0 top-0 w-full rounded-lg border p-3 focus-within:ring-2 focus-within:ring-blue-600 ${selectedId === id ? "border-blue-600 bg-blue-50" : "border-border bg-card"}`}
+              className={`absolute left-0 top-0 w-full rounded-lg border p-3 transition-colors focus-within:ring-2 focus-within:ring-blue-600 ${
+                playingId === id
+                  ? "border-blue-600 bg-blue-50 ring-1 ring-blue-600"
+                  : selectedId === id
+                    ? "border-blue-600 bg-blue-50"
+                    : "border-border bg-card"
+              }`}
               style={{ transform: `translateY(${row.start}px)` }}
             >
               <div className="mb-2 flex items-center gap-2">

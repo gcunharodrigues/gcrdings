@@ -432,16 +432,6 @@ const Sidebar: React.FC = () => {
     useMemo(
       () => [
         {
-          key: 'k',
-          mod: true,
-          allowInInput: true,
-          handler: () => {
-            if (isCollapsed) toggleCollapse();
-            searchInputRef.current?.focus();
-            searchInputRef.current?.select();
-          },
-        },
-        {
           key: 'b',
           mod: true,
           handler: toggleCollapse,
@@ -452,7 +442,7 @@ const Sidebar: React.FC = () => {
           handler: () => { if (!isRecording) handleRecordingToggle(); },
         },
       ],
-      [isCollapsed, isRecording, toggleCollapse, handleRecordingToggle],
+      [isRecording, toggleCollapse, handleRecordingToggle],
     ),
   );
 
@@ -731,7 +721,7 @@ const Sidebar: React.FC = () => {
 
                 <div className="relative mb-1">
                   <InputGroup >
-                    <InputGroupInput ref={searchInputRef} placeholder='Search Sessions  (⌘K)' value={searchQuery}
+                    <InputGroupInput ref={searchInputRef} placeholder='Filter this list' value={searchQuery}
                       onChange={(e) => handleSearchChange(e.target.value)}
                     />
                     <InputGroupAddon>
