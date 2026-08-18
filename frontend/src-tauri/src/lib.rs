@@ -803,6 +803,8 @@ pub fn run() {
             audio::import::select_and_validate_audio_command,
             audio::import::validate_audio_file_command,
             audio::import::start_import_audio_command,
+            audio::batch_import::api_select_import_folder,
+            audio::batch_import::api_start_batch_import,
             audio::import::cancel_import_command,
             audio::import::is_import_in_progress_command,
         ])

@@ -18,6 +18,8 @@ import { useConfig } from '@/contexts/ConfigContext';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { SidebarAction } from './SidebarAction';
 import { OrganisationFilter, type OrganisationSelection } from './OrganisationFilter';
+import { BatchImportDialog } from '@/components/ImportAudio/BatchImportDialog';
+import { FolderInput } from 'lucide-react';
 import { groupByRecency, shortDateLabel } from '@/lib/session-grouping';
 
 import { MessageToast } from '../MessageToast';
@@ -53,6 +55,7 @@ const Sidebar: React.FC = () => {
     setMeetings,
     serverAddress,
     navigate,
+    refetchMeetings,
   } = useSidebar();
 
   // Get recording state from RecordingStateContext (single source of truth)
@@ -428,6 +431,7 @@ const Sidebar: React.FC = () => {
     setEditingTitle('');
   };
 
+  const [showBatchImport, setShowBatchImport] = useState(false);
   const [organisationFilter, setOrganisationFilter] = useState<OrganisationSelection>({
     folderId: null,
     tagIds: [],
@@ -542,6 +546,14 @@ const Sidebar: React.FC = () => {
       icon: <Upload className="w-5 h-5" />,
       label: 'Import Media',
       onClick: () => openImportDialog(),
+      tone: 'accent' as const,
+    },
+    {
+      key: 'import-folder',
+      places: ['footer'] as const,
+      icon: <FolderInput className="w-5 h-5" />,
+      label: 'Import a folder',
+      onClick: () => setShowBatchImport(true),
       tone: 'accent' as const,
     },
     {
@@ -864,6 +876,11 @@ const Sidebar: React.FC = () => {
         )}
       </div>
 
+      <BatchImportDialog
+        open={showBatchImport}
+        onOpenChange={setShowBatchImport}
+        onFinished={() => void refetchMeetings()}
+      />
     </div>
     </TooltipProvider>
   );
