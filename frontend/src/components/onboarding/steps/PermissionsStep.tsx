@@ -6,6 +6,7 @@ import { OnboardingContainer } from '../OnboardingContainer';
 import { PermissionRow } from '../shared';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { log } from '@/lib/logger';
+import { toast } from 'sonner';
 
 export function PermissionsStep() {
   const { setPermissionStatus, setPermissionsSkipped, permissions, goNext } = useOnboarding();
@@ -33,7 +34,9 @@ export function PermissionsStep() {
       try {
         await invoke('open_system_settings');
       } catch {
-        alert('Please enable microphone access in System Preferences > Security & Privacy > Microphone');
+        toast.warning('Microphone access is off.', {
+          description: 'Enable it in System Settings → Privacy & Security → Microphone.',
+        });
       }
       return;
     }
@@ -65,7 +68,9 @@ export function PermissionsStep() {
       try {
         await invoke('open_system_settings');
       } catch {
-        alert('Please enable Audio Capture in System Settings → Privacy & Security → Audio Capture');
+        toast.warning('Audio Capture is off.', {
+          description: 'Enable it in System Settings → Privacy & Security → Audio Capture.',
+        });
       }
       return;
     }

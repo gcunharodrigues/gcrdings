@@ -2,7 +2,7 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import { appDataDir } from '@tauri-apps/api/path';
-import { useCallback, useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { Play, Pause, Square, Mic, AlertCircle, X } from 'lucide-react';
 import { ProcessRequest, SummaryResponse } from '@/types/summary';
 import { listen } from '@tauri-apps/api/event';
@@ -12,6 +12,8 @@ import Analytics from '@/lib/analytics';
 import { useRecordingState } from '@/contexts/RecordingStateContext';
 import { DISABLED_AUDIO_SOURCE } from '@/services/recordingService';
 import { log } from '@/lib/logger';
+import { toast } from 'sonner';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 
 interface RecordingControlsProps {
   isRecording: boolean;
@@ -100,7 +102,9 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
         log.debug('Tauri is initialized and ready, is_recording result:', result);
       } catch (error) {
         console.error('Tauri initialization error:', error);
-        alert('Failed to initialize recording. Please check the console for details.');
+        toast.error('Recording could not be initialised.', {
+          description: 'Check the audio devices in Settings and try again.',
+        });
       }
     };
     checkTauri();
@@ -232,8 +236,10 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
       // isPaused state now managed by RecordingStateContext via events
       log.debug('Recording paused successfully');
     } catch (error) {
-      console.error('Failed to pause recording:', error);
-      alert('Failed to pause recording. Please check the console for details.');
+      log.error('Failed to pause recording:', error);
+      toast.error('The recording could not be paused.', {
+        description: 'It is still running. Try again, or stop the recording.',
+      });
     } finally {
       setIsPausing(false);
     }
@@ -250,12 +256,35 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
       // isPaused state now managed by RecordingStateContext via events
       log.debug('Recording resumed successfully');
     } catch (error) {
-      console.error('Failed to resume recording:', error);
-      alert('Failed to resume recording. Please check the console for details.');
+      log.error('Failed to resume recording:', error);
+      toast.error('The recording could not be resumed.', {
+        description: 'It is still paused. Try again, or stop the recording.',
+      });
     } finally {
       setIsResuming(false);
     }
   }, [isRecording, isPaused, isResuming]);
+
+  // ⌘⇧R pairs with ⌘R, which starts a recording. Stopping deliberately has no
+  // shortcut: it ends the recording, and a mis-typed chord should not be able
+  // to do that.
+  useKeyboardShortcuts(
+    useMemo(
+      () => [
+        {
+          key: 'r',
+          mod: true,
+          shift: true,
+          handler: () => {
+            if (isPaused) void handleResumeRecording();
+            else void handlePauseRecording();
+          },
+        },
+      ],
+      [handlePauseRecording, handleResumeRecording, isPaused],
+    ),
+    isRecording,
+  );
 
   useEffect(() => {
     return () => {
@@ -461,7 +490,7 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
                           </button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>{isPaused ? 'Resume recording' : 'Pause recording'}</p>
+                          <p>{isPaused ? 'Resume recording' : 'Pause recording'}  ⌘⇧R</p>
                         </TooltipContent>
                       </Tooltip>
 

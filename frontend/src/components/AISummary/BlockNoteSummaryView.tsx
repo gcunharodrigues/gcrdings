@@ -10,6 +10,7 @@ import { BlockNoteView } from '@blocknote/shadcn';
 import { blocksToMarkdownSafely } from '@/lib/blocknote-markdown';
 import "@blocknote/shadcn/style.css";
 import { log } from '@/lib/logger';
+import { toast } from 'sonner';
 
 // Dynamically import BlockNote Editor to avoid SSR issues
 const Editor = dynamic(() => import('../BlockNoteEditor/Editor'), { ssr: false });
@@ -160,7 +161,9 @@ export const BlockNoteSummaryView = forwardRef<BlockNoteSummaryViewRef, BlockNot
       log.debug('✅ Save successful');
     } catch (err) {
       console.error('❌ Save failed:', err);
-      alert('Failed to save changes. Please try again.');
+      toast.error('Your changes could not be saved.', {
+        description: 'They are still on screen. Try again.',
+      });
     } finally {
       setIsSaving(false);
     }

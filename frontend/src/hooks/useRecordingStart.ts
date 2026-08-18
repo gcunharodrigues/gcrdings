@@ -7,6 +7,7 @@ import { recordingService } from '@/services/recordingService';
 import Analytics from '@/lib/analytics';
 import { showRecordingNotification } from '@/lib/recordingNotification';
 import { log } from '@/lib/logger';
+import { toast } from 'sonner';
 
 interface UseRecordingStartReturn {
   handleRecordingStart: () => Promise<void>;
@@ -127,7 +128,9 @@ export function useRecordingStart(
           } catch (error) {
             console.error('Failed to auto-start recording:', error);
             setStatus(RecordingStatus.ERROR, error instanceof Error ? error.message : 'Failed to auto-start recording');
-            alert('Failed to start recording. Check console for details.');
+            toast.error('The recording could not be started.', {
+              description: 'Check the audio devices in Settings and try again.',
+            });
             Analytics.trackButtonClick('start_recording_error', 'sidebar_auto');
           } finally {
             setIsAutoStarting(false);
@@ -188,7 +191,9 @@ export function useRecordingStart(
       } catch (error) {
         console.error('Failed to start recording from sidebar:', error);
         setStatus(RecordingStatus.ERROR, error instanceof Error ? error.message : 'Failed to start recording from sidebar');
-        alert('Failed to start recording. Check console for details.');
+        toast.error('The recording could not be started.', {
+          description: 'Check the audio devices in Settings and try again.',
+        });
         Analytics.trackButtonClick('start_recording_error', 'sidebar_direct');
       } finally {
         setIsAutoStarting(false);
