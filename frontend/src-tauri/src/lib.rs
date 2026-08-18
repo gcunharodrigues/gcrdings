@@ -39,6 +39,7 @@ pub mod audio;
 pub mod config;
 pub mod console_utils;
 pub mod database;
+pub mod global_shortcut;
 pub mod groq;
 pub mod markers;
 pub mod notifications;
@@ -393,6 +394,13 @@ pub fn run() {
     }
 
     builder
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(|app, shortcut, event| {
+                    global_shortcut::handle_event(app, shortcut, event.state());
+                })
+                .build(),
+        )
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_dialog::init())
@@ -408,6 +416,8 @@ pub fn run() {
             if let Err(e) = tray::create_tray(_app.handle()) {
                 log::error!("Failed to create system tray: {}", e);
             }
+
+            global_shortcut::register(_app.handle());
 
             // Initialize notification system with proper defaults
             log::info!("Initializing notification system...");
