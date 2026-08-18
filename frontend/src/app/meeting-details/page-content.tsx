@@ -11,6 +11,9 @@ import { AgentHandoffMenu } from "@/components/MeetingDetails/AgentHandoffMenu";
 import { ExternalTransferDialog } from "@/components/MeetingDetails/ExternalTransferDialog";
 import { SessionHeader } from "@/components/MeetingDetails/SessionHeader";
 import { ConfirmationModal } from "@/components/ConfirmationModel/confirmation-modal";
+import { RecordModeSelector } from "@/components/MeetingDetails/RecordModeSelector";
+import { readDefaultRecordMode, readSessionRecordMode, writeDefaultRecordMode, writeSessionRecordMode } from "@/lib/record-mode-preferences";
+import type { RecordMode } from "@/types/record-modes";
 import { useMeetingOperations } from "@/hooks/meeting-details/useMeetingOperations";
 import { useReviewRecord } from "@/hooks/meeting-details/useReviewRecord";
 import { useVerifiableRecord } from "@/hooks/meeting-details/useVerifiableRecord";
@@ -55,6 +58,21 @@ export default function PageContent({ meeting, onRefetchTranscripts, hasMore, is
     discardResolver.current = null;
   };
 
+  // The reader's default applies until this Session is given its own mode.
+  const [mode, setMode] = useState<RecordMode>(() => readSessionRecordMode(meeting.id));
+  const [defaultMode, setDefaultMode] = useState<RecordMode>(readDefaultRecordMode);
+
+  const applyMode = (next: RecordMode) => {
+    setMode(next);
+    writeSessionRecordMode(meeting.id, next);
+    if (next.recordType !== mode.recordType) void findings.selectType(next.recordType);
+  };
+
+  const makeModeDefault = () => {
+    writeDefaultRecordMode(mode);
+    setDefaultMode(mode);
+  };
+
   const confirmDestructiveOperation = async () => {
     if (!reviewRecord.state?.dirty) return true;
     const confirmed = await new Promise<boolean>((resolve) => {
@@ -97,12 +115,21 @@ export default function PageContent({ meeting, onRefetchTranscripts, hasMore, is
           passageCount={totalCount ?? meeting.transcripts.length}
           durationMs={sessionDurationMs}
         />
+        <RecordModeSelector
+          mode={mode}
+          onChange={applyMode}
+          onSaveAsDefault={makeModeDefault}
+          isDefault={mode.recordType === defaultMode.recordType && mode.voice === defaultMode.voice && mode.shape === defaultMode.shape}
+          hasParticipants={(findings.record?.participants.length ?? 0) > 0}
+          hasTimestamps={Boolean(findings.record?.transcript.some((passage) => passage.start_ms > 0))}
+          disabled={findings.record?.generation_status === "processing"}
+        />
         <ExternalTransferDialog meetingId={meeting.id} disabled={Boolean(reviewRecord.state?.dirty)} />
         <AgentHandoffMenu meetingId={meeting.id} disabled={Boolean(reviewRecord.state?.dirty)} />
       </header>
       <main className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(18rem,1fr)_minmax(28rem,2fr)] lg:overflow-hidden">
         <section aria-label="Session findings" data-review-column="context" className="flex min-h-0 flex-col overflow-hidden bg-white">
-          <SummaryPanel record={findings.record} loadError={findings.error} hasUnsavedTranscript={Boolean(reviewRecord.state?.dirty)} onSelectType={(type) => void findings.selectType(type)} onGenerate={() => void findings.generate()} onCancel={() => void findings.cancel()} onSeek={seek} />
+          <SummaryPanel record={findings.record} loadError={findings.error} hasUnsavedTranscript={Boolean(reviewRecord.state?.dirty)} mode={mode} onGenerate={() => void findings.generate()} onCancel={() => void findings.cancel()} onSeek={seek} />
           {reviewRecord.state && <ParticipantsPanel state={reviewRecord.state} dispatch={reviewRecord.dispatch} />}
         </section>
         {reviewRecord.state ? (
