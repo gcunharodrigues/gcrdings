@@ -40,6 +40,7 @@ pub mod config;
 pub mod console_utils;
 pub mod database;
 pub mod groq;
+pub mod markers;
 pub mod notifications;
 pub mod ollama;
 pub mod onboarding;
@@ -678,6 +679,13 @@ pub fn run() {
             providers::commands::api_preview_provider_transfer,
             providers::commands::api_confirm_provider_transfer,
             verifiable_record::commands::api_get_verifiable_record,
+            markers::commands::api_add_pending_marker,
+            markers::commands::api_get_pending_markers,
+            markers::commands::api_clear_pending_markers,
+            markers::commands::api_get_session_markers,
+            markers::commands::api_add_session_marker,
+            markers::commands::api_update_session_marker,
+            markers::commands::api_delete_session_marker,
             verifiable_record::commands::api_generate_verifiable_record,
             verifiable_record::commands::api_cancel_verifiable_record,
             verifiable_record::commands::api_set_record_type,

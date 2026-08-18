@@ -10,6 +10,7 @@ import { ParticipantsPanel } from "@/components/MeetingDetails/ParticipantsPanel
 import { AgentHandoffMenu } from "@/components/MeetingDetails/AgentHandoffMenu";
 import { ExternalTransferDialog } from "@/components/MeetingDetails/ExternalTransferDialog";
 import { SessionHeader } from "@/components/MeetingDetails/SessionHeader";
+import { MarkersPanel } from "@/components/MeetingDetails/MarkersPanel";
 import { ConfirmationModal } from "@/components/ConfirmationModel/confirmation-modal";
 import { RecordModeSelector } from "@/components/MeetingDetails/RecordModeSelector";
 import { readDefaultRecordMode, readSessionRecordMode, writeDefaultRecordMode, writeSessionRecordMode } from "@/lib/record-mode-preferences";
@@ -134,6 +135,7 @@ export default function PageContent({ meeting, onRefetchTranscripts, hasMore, is
       <main className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(18rem,1fr)_minmax(28rem,2fr)] lg:overflow-hidden">
         <section aria-label="Session findings" data-review-column="context" className="flex min-h-0 flex-col overflow-hidden bg-card">
           <SummaryPanel record={findings.record} loadError={findings.error} hasUnsavedTranscript={Boolean(reviewRecord.state?.dirty)} mode={mode} onGenerate={() => void findings.generate()} onCancel={() => void findings.cancel()} onSeek={seek} />
+          <MarkersPanel meetingId={meeting.id} onSeek={seek} />
           {reviewRecord.state && <ParticipantsPanel state={reviewRecord.state} dispatch={reviewRecord.dispatch} />}
         </section>
         {reviewRecord.state ? (

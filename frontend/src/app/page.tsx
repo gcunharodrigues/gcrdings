@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { RecordingControls } from '@/components/RecordingControls';
 import { useSidebar } from '@/components/Sidebar/SidebarProvider';
@@ -14,6 +14,8 @@ import { SettingsModals } from './_components/SettingsModal';
 import { TranscriptPanel } from './_components/TranscriptPanel';
 import { useModalState } from '@/hooks/useModalState';
 import { useRecordingStateSync } from '@/hooks/useRecordingStateSync';
+import { useRecordingMarkers } from '@/hooks/useRecordingMarkers';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useRecordingStart } from '@/hooks/useRecordingStart';
 import { useRecordingStop } from '@/hooks/useRecordingStop';
 import { useTranscriptRecovery } from '@/hooks/useTranscriptRecovery';
@@ -61,6 +63,18 @@ export default function Home() {
   } = useTranscriptRecovery();
 
   const router = useRouter();
+
+  // ⌘M during a recording flags the moment. Nothing is generated and no model
+  // runs — it is the cheapest way to find a passage again later.
+  const { pending: pendingMarkers, mark } = useRecordingMarkers(
+    recordingState.isRecording,
+    recordingState.activeDuration,
+  );
+
+  useKeyboardShortcuts(
+    useMemo(() => [{ key: 'm', mod: true, handler: () => void mark() }], [mark]),
+    recordingState.isRecording,
+  );
 
   useEffect(() => {
     // Track page view
