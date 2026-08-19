@@ -54,6 +54,11 @@ describe("Agent Handoff renderer contract", () => {
     expect(menu).toContain("consumePendingAgentHandoff(open, pending");
     expect(menu).toContain('aria-live="polite"');
     expect(menu).toContain('invoke<AgentHandoffOutcome>("api_export_agent_handoff"');
-    expect(workspace).toContain("<AgentHandoffMenu meetingId={meeting.id}");
+    expect(workspace).toContain("<AgentHandoffMenu");
+    expect(workspace).toContain("meetingId={meeting.id}");
+    // Unsaved corrections are saved before exporting rather than disabling the
+    // menu, so the export always matches the principal record.
+    expect(workspace).toContain("onSaveTranscript={savePrincipal}");
+    expect(menu).toContain("await onSaveTranscript()");
   });
 });

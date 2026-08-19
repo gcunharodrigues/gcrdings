@@ -9,6 +9,7 @@ import { storageService } from '@/services/storageService';
 import { transcriptService } from '@/services/transcriptService';
 import { configService } from '@/services/configService';
 import Analytics from '@/lib/analytics';
+import { log } from '@/lib/logger';
 import {
   applyPinnedSummaryLanguageToMeeting,
   detectAndCacheSummaryLanguage,
@@ -82,7 +83,7 @@ export function useRecordingStop(
 
     const setupRecordingStoppedListener = async () => {
       try {
-        console.log('Setting up recording-stopped listener for navigation...');
+        log.debug('Setting up recording-stopped listener for navigation...');
         unlistenFn = await listen<{
           message: string;
           folder_path?: string;
@@ -106,7 +107,7 @@ export function useRecordingStop(
           'recording-save-warning',
           (event) => toast.warning(event.payload.message)
         );
-        console.log('Recording stopped listener setup complete');
+        log.debug('Recording stopped listener setup complete');
       } catch (error) {
         console.error('Failed to setup recording stopped listener:', error);
       }
@@ -115,7 +116,7 @@ export function useRecordingStop(
     setupRecordingStoppedListener();
 
     return () => {
-      console.log('Cleaning up recording stopped listener...');
+      log.debug('Cleaning up recording stopped listener...');
       if (unlistenFn) {
         unlistenFn();
       }
@@ -144,18 +145,18 @@ export function useRecordingStop(
     const stopStartTime = Date.now();
 
     try {
-      console.log('Post-stop processing (new implementation)...', {
+      log.debug('Post-stop processing (new implementation)...', {
         stop_initiated_at: new Date(stopStartTime).toISOString(),
         current_transcript_count: transcriptsRef.current.length
       });
 
       // Note: stop_recording is already called by RecordingControls.stopRecordingAction
       // This function only handles post-stop processing (transcription wait, API call, navigation)
-      console.log('Recording already stopped by RecordingControls, processing transcription...');
+      log.debug('Recording already stopped by RecordingControls, processing transcription...');
 
       // Wait for transcription to complete
       setStatus(RecordingStatus.PROCESSING_TRANSCRIPTS, 'Waiting for transcription...');
-      console.log('Waiting for transcription to complete...');
+      log.debug('Waiting for transcription to complete...');
 
       const MAX_WAIT_TIME = 60000; // 60 seconds maximum wait (increased for longer processing)
       const POLL_INTERVAL = 500; // Check every 500ms
@@ -164,7 +165,7 @@ export function useRecordingStop(
 
       // Listen for transcription-complete event
       const unlistenComplete = await listen('transcription-complete', () => {
-        console.log('Received transcription-complete event');
+        log.debug('Received transcription-complete event');
         transcriptionComplete = true;
       });
 
@@ -172,25 +173,25 @@ export function useRecordingStop(
       while (elapsedTime < MAX_WAIT_TIME && !transcriptionComplete) {
         try {
           const status = await transcriptService.getTranscriptionStatus();
-          console.log('Transcription status:', status);
+          log.debug('Transcription status:', status);
 
           // Check if transcription is complete
           if (!status.is_processing && status.chunks_in_queue === 0) {
-            console.log('Transcription complete - no active processing and no chunks in queue');
+            log.debug('Transcription complete - no active processing and no chunks in queue');
             transcriptionComplete = true;
             break;
           }
 
           // If no activity for more than 8 seconds and no chunks in queue, consider it done (increased from 5s to 8s)
           if (status.last_activity_ms > 8000 && status.chunks_in_queue === 0) {
-            console.log('Transcription likely complete - no recent activity and empty queue');
+            log.debug('Transcription likely complete - no recent activity and empty queue');
             transcriptionComplete = true;
             break;
           }
 
           // Update user with current status
           if (status.chunks_in_queue > 0) {
-            console.log(`Processing ${status.chunks_in_queue} remaining audio chunks...`);
+            log.debug(`Processing ${status.chunks_in_queue} remaining audio chunks...`);
             setStatus(RecordingStatus.PROCESSING_TRANSCRIPTS, `Processing ${status.chunks_in_queue} remaining chunks...`);
           }
 
@@ -204,21 +205,21 @@ export function useRecordingStop(
       }
 
       // Clean up listener
-      console.log('🧹 CLEANUP: Cleaning up transcription-complete listener');
+      log.debug('🧹 CLEANUP: Cleaning up transcription-complete listener');
       unlistenComplete();
 
       if (!transcriptionComplete && elapsedTime >= MAX_WAIT_TIME) {
         console.warn('⏰ Transcription wait timeout reached after', elapsedTime, 'ms');
       } else {
-        console.log('✅ Transcription completed after', elapsedTime, 'ms');
+        log.debug('✅ Transcription completed after', elapsedTime, 'ms');
         // Wait longer for any late transcript segments (increased from 1s to 4s)
-        console.log('⏳ Waiting for late transcript segments...');
+        log.debug('⏳ Waiting for late transcript segments...');
         await new Promise(resolve => setTimeout(resolve, 4000));
       }
 
       // Final buffer flush: process ALL remaining transcripts regardless of timing
       const flushStartTime = Date.now();
-      console.log('🔄 Final buffer flush: forcing processing of any remaining transcripts...', {
+      log.debug('🔄 Final buffer flush: forcing processing of any remaining transcripts...', {
         flush_started_at: new Date(flushStartTime).toISOString(),
         time_since_stop: flushStartTime - stopStartTime,
         current_transcript_count: transcriptsRef.current.length
@@ -226,7 +227,7 @@ export function useRecordingStop(
       setStatus(RecordingStatus.PROCESSING_TRANSCRIPTS, 'Flushing transcript buffer...');
       flushBuffer();
       const flushEndTime = Date.now();
-      console.log('✅ Final buffer flush completed', {
+      log.debug('✅ Final buffer flush completed', {
         flush_duration: flushEndTime - flushStartTime,
         total_time_since_stop: flushEndTime - stopStartTime,
         final_transcript_count: transcriptsRef.current.length
@@ -235,7 +236,7 @@ export function useRecordingStop(
       // NOTE: Status remains PROCESSING_TRANSCRIPTS until we start saving
 
       // Wait a bit more to ensure all transcript state updates have been processed
-      console.log('Waiting for transcript state updates to complete...');
+      log.debug('Waiting for transcript state updates to complete...');
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // Save to SQLite
@@ -252,7 +253,7 @@ export function useRecordingStop(
         const folderPath = sessionStorage.getItem('last_recording_folder_path');
         const savedMeetingName = sessionStorage.getItem('last_recording_meeting_name');
 
-        console.log('Saving complete transcript set', {
+        log.debug('Saving complete transcript set', {
           transcript_count: freshTranscripts.length,
         });
 
@@ -293,8 +294,8 @@ export function useRecordingStop(
             }
           }
 
-          console.log('✅ Successfully saved COMPLETE meeting with ID:', meetingId);
-          console.log('   Transcripts:', freshTranscripts.length);
+          log.debug('✅ Successfully saved COMPLETE meeting with ID:', meetingId);
+          log.debug('   Transcripts:', freshTranscripts.length);
 
           if (!folderPath) {
             throw new Error('Recording folder path is unavailable');
@@ -371,7 +372,7 @@ export function useRecordingStop(
                 id: meetingId,
                 title: meetingData.title
               });
-              console.log('Current meeting set');
+              log.debug('Current meeting set');
             }
           } catch (error) {
             console.warn('Could not fetch meeting details, using ID only:', error);
