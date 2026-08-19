@@ -36,6 +36,7 @@ pub mod analytics;
 pub mod anthropic;
 pub mod api;
 pub mod audio;
+pub mod clips;
 pub mod config;
 pub mod console_utils;
 pub mod database;
@@ -690,6 +691,11 @@ pub fn run() {
             providers::commands::api_preview_provider_transfer,
             providers::commands::api_confirm_provider_transfer,
             verifiable_record::commands::api_get_verifiable_record,
+            clips::commands::api_list_clips,
+            clips::commands::api_create_clip,
+            clips::commands::api_rename_clip,
+            clips::commands::api_delete_clip,
+            clips::commands::api_reveal_clip,
             organisation::commands::api_list_folders,
             organisation::commands::api_create_folder,
             organisation::commands::api_rename_folder,

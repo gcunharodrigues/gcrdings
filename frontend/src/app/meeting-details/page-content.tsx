@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
 import type { Transcript } from "@/types";
 import { useSidebar } from "@/components/Sidebar/SidebarProvider";
@@ -11,6 +12,7 @@ import { AgentHandoffMenu } from "@/components/MeetingDetails/AgentHandoffMenu";
 import { ExternalTransferDialog } from "@/components/MeetingDetails/ExternalTransferDialog";
 import { SessionHeader } from "@/components/MeetingDetails/SessionHeader";
 import { MarkersPanel } from "@/components/MeetingDetails/MarkersPanel";
+import { ClipsPanel } from "@/components/MeetingDetails/ClipsPanel";
 import { SessionOrganisation } from "@/components/MeetingDetails/SessionOrganisation";
 import { ConfirmationModal } from "@/components/ConfirmationModel/confirmation-modal";
 import { RecordModeSelector } from "@/components/MeetingDetails/RecordModeSelector";
@@ -136,9 +138,22 @@ export default function PageContent({ meeting, onRefetchTranscripts, hasMore, is
       </header>
       <main className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(18rem,1fr)_minmax(28rem,2fr)] lg:overflow-hidden">
         <section aria-label="Session findings" data-review-column="context" className="flex min-h-0 flex-col overflow-hidden bg-card">
-          <SummaryPanel record={findings.record} loadError={findings.error} hasUnsavedTranscript={Boolean(reviewRecord.state?.dirty)} mode={mode} onGenerate={() => void findings.generate()} onCancel={() => void findings.cancel()} onSeek={seek} />
-          <MarkersPanel meetingId={meeting.id} onSeek={seek} />
-          {reviewRecord.state && <ParticipantsPanel state={reviewRecord.state} dispatch={reviewRecord.dispatch} />}
+          <Tabs defaultValue="findings" className="flex min-h-0 flex-1 flex-col">
+            <TabsList className="mx-4 mt-3 self-start">
+              <TabsTrigger value="findings">Findings</TabsTrigger>
+              <TabsTrigger value="clips">Clips</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="findings" className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <SummaryPanel record={findings.record} loadError={findings.error} hasUnsavedTranscript={Boolean(reviewRecord.state?.dirty)} mode={mode} onGenerate={() => void findings.generate()} onCancel={() => void findings.cancel()} onSeek={seek} />
+              <MarkersPanel meetingId={meeting.id} onSeek={seek} />
+              {reviewRecord.state && <ParticipantsPanel state={reviewRecord.state} dispatch={reviewRecord.dispatch} />}
+            </TabsContent>
+
+            <TabsContent value="clips" className="min-h-0 flex-1 overflow-y-auto">
+              <ClipsPanel meetingId={meeting.id} />
+            </TabsContent>
+          </Tabs>
         </section>
         {reviewRecord.state ? (
           <TranscriptPanel state={reviewRecord.state} sourceTranscripts={meeting.transcripts} dispatch={reviewRecord.dispatch} save={savePrincipal} reload={reviewRecord.reload} audioPlayer={audioPlayer} hasMore={hasMore} isLoadingMore={isLoadingMore} totalCount={totalCount} loadedCount={loadedCount} onLoadMore={onLoadMore} meetingId={meeting.id} meetingFolderPath={meeting.folder_path} onRefetchTranscripts={onRefetchTranscripts} confirmDestructiveOperation={confirmDestructiveOperation} onOpenMeetingFolder={meetingOperations.handleOpenMeetingFolder} />
