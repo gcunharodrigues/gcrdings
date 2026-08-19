@@ -53,12 +53,11 @@ export function useScreenRecording() {
   }, []);
 
   const start = useCallback(
-    async (target: CaptureTarget, destination: string, startedAtOffsetMs: number) => {
+    async (target: CaptureTarget, startedAtOffsetMs: number) => {
       try {
         setState(
           await invoke<ScreenRecordingState>('api_start_screen_recording', {
             target,
-            destination,
             startedAtOffsetMs,
           }),
         );
@@ -75,6 +74,9 @@ export function useScreenRecording() {
   const stop = useCallback(async () => {
     try {
       setState(await invoke<ScreenRecordingState>('api_stop_screen_recording'));
+      toast.success('Screen recording saved', {
+        description: 'It attaches to the Session when you save the recording.',
+      });
       return true;
     } catch (reason) {
       log.warn('[screen] Could not stop:', reason);

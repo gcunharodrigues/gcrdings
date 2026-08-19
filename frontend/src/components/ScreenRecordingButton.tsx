@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { appDataDir, join } from '@tauri-apps/api/path';
 import { MonitorPlay, MonitorStop } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScreenTargetPicker } from '@/components/ScreenTargetPicker';
@@ -27,12 +26,11 @@ export function ScreenRecordingButton() {
   };
 
   const begin = async (target: CaptureTarget) => {
-    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const destination = await join(await appDataDir(), 'screen-recordings', `${stamp}.mp4`);
-    // The screen and the audio start moments apart, so the offset between them
-    // is recorded rather than assumed to be zero.
+    // The backend picks the path. Choosing it here put recordings under the
+    // bundle identifier while the database lived under the product name, so
+    // the app wrote videos it could never find again.
     const offsetMs = Math.max(0, Math.round((activeDuration ?? 0) * 1000));
-    if (await start(target, destination, offsetMs)) setOpen(false);
+    if (await start(target, offsetMs)) setOpen(false);
   };
 
   if (state.isRecording) {

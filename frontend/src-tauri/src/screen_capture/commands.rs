@@ -118,12 +118,12 @@ mod mac {
             CaptureTarget::Display { id, .. } => {
                 let displays = content.displays();
                 let display = displays.iter().find(|d| d.display_id().0 == *id)?;
-                sc::ContentFilter::with_display_excluding_windows(&display, &ns::Array::new())
+                sc::ContentFilter::with_display_excluding_windows(display, &ns::Array::new())
             }
             CaptureTarget::Window { id, .. } => {
                 let windows = content.windows();
                 let window = windows.iter().find(|w| w.id() == *id)?;
-                sc::ContentFilter::with_desktop_independent_window(&window)
+                sc::ContentFilter::with_desktop_independent_window(window)
             }
         };
 
@@ -173,7 +173,7 @@ mod mac {
                     .ok_or(ScreenCaptureError::TargetUnavailable)?;
                 // Excluding nothing: the point of picking a display is to
                 // record what is on it.
-                sc::ContentFilter::with_display_excluding_windows(&display, &ns::Array::new())
+                sc::ContentFilter::with_display_excluding_windows(display, &ns::Array::new())
             }
             CaptureTarget::Window { id, .. } => {
                 let windows = content.windows();
@@ -181,7 +181,7 @@ mod mac {
                     .iter()
                     .find(|window| window.id() == *id)
                     .ok_or(ScreenCaptureError::TargetUnavailable)?;
-                sc::ContentFilter::with_desktop_independent_window(&window)
+                sc::ContentFilter::with_desktop_independent_window(window)
             }
         };
 
@@ -238,6 +238,53 @@ mod mac {
 #[cfg(target_os = "macos")]
 static ACTIVE: Mutex<Option<mac::ActiveRecording>> = Mutex::new(None);
 
+/// Screen recordings finished before a Session existed.
+///
+/// Capture usually starts before anyone presses save, exactly like markers, so
+/// the finished file waits here until there is a meeting id to attach it to.
+/// Without this the video is written and then never referenced again — which
+/// is what happened.
+static PENDING: Mutex<Vec<(String, CaptureTarget, i64)>> = Mutex::new(Vec::new());
+
+/// Attaches everything captured during this recording to the Session just
+/// saved. A failure is swallowed: losing the link to a video is bad, failing
+/// the save would lose the transcript.
+pub async fn attach_pending_recordings(pool: &sqlx::Pool<sqlx::Sqlite>, meeting_id: &str) -> u64 {
+    let pending = PENDING
+        .lock()
+        .map(|mut buffer| std::mem::take(&mut *buffer))
+        .unwrap_or_default();
+
+    let mut attached = 0;
+    for (path, target, offset_ms) in pending {
+        let (kind, label) = match &target {
+            CaptureTarget::Display { width, height, .. } => {
+                ("display", format!("Screen {width}×{height}"))
+            }
+            CaptureTarget::Window { title, app, .. } => ("window", format!("{app} · {title}")),
+        };
+
+        let inserted = sqlx::query(
+            "INSERT INTO screen_recordings \
+             (id, meeting_id, file_path, started_at_offset_ms, target_kind, target_label) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        )
+        .bind(uuid::Uuid::new_v4().to_string())
+        .bind(meeting_id)
+        .bind(&path)
+        .bind(offset_ms)
+        .bind(kind)
+        .bind(&label)
+        .execute(pool)
+        .await;
+
+        if inserted.is_ok() {
+            attached += 1;
+        }
+    }
+    attached
+}
+
 #[tauri::command]
 pub async fn api_list_capture_targets<R: Runtime>(
     _app: AppHandle<R>,
@@ -292,11 +339,25 @@ pub async fn api_capture_target_thumbnail<R: Runtime>(
     }
 }
 
+/// The destination is computed here rather than passed in.
+///
+/// Letting the frontend choose put recordings under the bundle identifier
+/// while the database lives under the product name — two Application Support
+/// folders, and videos the app could never find. Whoever owns the data owns
+/// the path.
+#[cfg(target_os = "macos")]
+fn recordings_root<R: Runtime>(app: &AppHandle<R>) -> Result<PathBuf, ScreenCaptureError> {
+    use tauri::Manager;
+    app.path()
+        .app_data_dir()
+        .map(|dir| dir.join("screen-recordings"))
+        .map_err(|_| ScreenCaptureError::Failed)
+}
+
 #[tauri::command]
 pub async fn api_start_screen_recording<R: Runtime>(
     app: AppHandle<R>,
     target: CaptureTarget,
-    destination: String,
     started_at_offset_ms: i64,
 ) -> Result<ScreenRecordingState, ScreenCaptureError> {
     #[cfg(target_os = "macos")]
@@ -308,10 +369,10 @@ pub async fn api_start_screen_recording<R: Runtime>(
             }
         }
 
-        let path = PathBuf::from(destination);
-        if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent).map_err(|_| ScreenCaptureError::Failed)?;
-        }
+        let root = recordings_root(&app)?;
+        std::fs::create_dir_all(&root).map_err(|_| ScreenCaptureError::Failed)?;
+        let stamp = chrono::Local::now().format("%Y-%m-%dT%H-%M-%S").to_string();
+        let path = root.join(format!("screen-{stamp}.mp4"));
 
         let recording = mac::start(&target, &path, started_at_offset_ms).await?;
         let state = ScreenRecordingState {
@@ -326,7 +387,7 @@ pub async fn api_start_screen_recording<R: Runtime>(
     }
     #[cfg(not(target_os = "macos"))]
     {
-        let _ = (app, target, destination, started_at_offset_ms);
+        let _ = (app, target, started_at_offset_ms);
         Err(ScreenCaptureError::Unsupported)
     }
 }
@@ -353,7 +414,22 @@ pub async fn api_stop_screen_recording<R: Runtime>(
             started_at_offset_ms: Some(recording.started_at_offset_ms),
         };
 
+        let path = state.output_path.clone();
+        let target = state.target.clone();
+        let offset = state.started_at_offset_ms.unwrap_or(0);
+
         let result = mac::stop(recording).await;
+
+        // Queued for the next save. Recording the screen before starting the
+        // audio is normal, so the file has to wait for a Session to belong to.
+        if result.is_ok() {
+            if let (Some(path), Some(target)) = (path, target) {
+                if let Ok(mut pending) = PENDING.lock() {
+                    pending.push((path, target, offset));
+                }
+            }
+        }
+
         let _ = app.emit("screen-recording-changed", &state);
         result.map(|()| state)
     }
@@ -393,4 +469,78 @@ pub async fn api_get_screen_recording_state<R: Runtime>(
         output_path: None,
         started_at_offset_ms: None,
     })
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionScreenRecording {
+    pub id: String,
+    pub file_path: String,
+    pub started_at_offset_ms: i64,
+    pub target_kind: String,
+    pub target_label: Option<String>,
+    pub created_at: String,
+    /// False once the file has been moved or deleted from outside the app.
+    pub file_exists: bool,
+}
+
+#[tauri::command]
+pub async fn api_get_session_screen_recordings<R: Runtime>(
+    _app: AppHandle<R>,
+    state: tauri::State<'_, crate::state::AppState>,
+    meeting_id: String,
+) -> Result<Vec<SessionScreenRecording>, ScreenCaptureError> {
+    sqlx::query_as::<_, (String, String, i64, String, Option<String>, String)>(
+        "SELECT id, file_path, started_at_offset_ms, target_kind, target_label, created_at \
+         FROM screen_recordings WHERE meeting_id = ?1 ORDER BY created_at ASC",
+    )
+    .bind(&meeting_id)
+    .fetch_all(state.db_manager.pool())
+    .await
+    .map_err(|_| ScreenCaptureError::Failed)
+    .map(|rows| {
+        rows.into_iter()
+            .map(
+                |(id, file_path, started_at_offset_ms, target_kind, target_label, created_at)| {
+                    // Checked rather than assumed: someone can move or delete
+                    // the file, and a row pointing at nothing should say so
+                    // instead of opening a player that never starts.
+                    let file_exists = std::path::Path::new(&file_path).is_file();
+                    SessionScreenRecording {
+                        id,
+                        file_path,
+                        started_at_offset_ms,
+                        target_kind,
+                        target_label,
+                        created_at,
+                        file_exists,
+                    }
+                },
+            )
+            .collect()
+    })
+}
+
+#[tauri::command]
+pub async fn api_reveal_screen_recording<R: Runtime>(
+    _app: AppHandle<R>,
+    state: tauri::State<'_, crate::state::AppState>,
+    recording_id: String,
+) -> Result<(), ScreenCaptureError> {
+    let path =
+        sqlx::query_as::<_, (String,)>("SELECT file_path FROM screen_recordings WHERE id = ?1")
+            .bind(&recording_id)
+            .fetch_optional(state.db_manager.pool())
+            .await
+            .map_err(|_| ScreenCaptureError::Failed)?
+            .map(|(path,)| path)
+            .ok_or(ScreenCaptureError::Failed)?;
+
+    #[cfg(target_os = "macos")]
+    std::process::Command::new("/usr/bin/open")
+        .args(["-R", &path])
+        .spawn()
+        .map_err(|_| ScreenCaptureError::Failed)?;
+
+    Ok(())
 }

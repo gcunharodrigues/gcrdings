@@ -27,6 +27,7 @@
                 "default-src": "'self'",
                 "style-src": "'self' 'unsafe-inline'",
                 "img-src": "'self' asset: https://asset.localhost data:",
+            "media-src": "'self' asset: https://asset.localhost blob:",
                 "connect-src": "'self' http://localhost:5167 http://localhost:8178"
             },
             "devCsp": {
@@ -34,6 +35,7 @@
                 "script-src": "'self' 'unsafe-inline' 'unsafe-eval'",
                 "style-src": "'self' 'unsafe-inline'",
                 "img-src": "'self' asset: https://asset.localhost data:",
+            "media-src": "'self' asset: https://asset.localhost blob:",
                 "connect-src": "'self' ws://localhost:3118 ws://localhost:3119 http://localhost:5167 http://localhost:8178"
             },
             "assetProtocol": {

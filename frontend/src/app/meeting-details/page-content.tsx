@@ -13,6 +13,7 @@ import { ExternalTransferDialog } from "@/components/MeetingDetails/ExternalTran
 import { SessionHeader } from "@/components/MeetingDetails/SessionHeader";
 import { MarkersPanel } from "@/components/MeetingDetails/MarkersPanel";
 import { ClipsPanel } from "@/components/MeetingDetails/ClipsPanel";
+import { ScreenRecordingsPanel } from "@/components/MeetingDetails/ScreenRecordingsPanel";
 import { SessionOrganisation } from "@/components/MeetingDetails/SessionOrganisation";
 import { ConfirmationModal } from "@/components/ConfirmationModel/confirmation-modal";
 import { RecordModeSelector } from "@/components/MeetingDetails/RecordModeSelector";
@@ -146,6 +147,7 @@ export default function PageContent({ meeting, onRefetchTranscripts, hasMore, is
 
             <TabsContent value="findings" className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <SummaryPanel record={findings.record} loadError={findings.error} hasUnsavedTranscript={Boolean(reviewRecord.state?.dirty)} mode={mode} onGenerate={() => void findings.generate()} onCancel={() => void findings.cancel()} onSeek={seek} />
+              <ScreenRecordingsPanel meetingId={meeting.id} />
               <MarkersPanel meetingId={meeting.id} onSeek={seek} />
               {reviewRecord.state && <ParticipantsPanel state={reviewRecord.state} dispatch={reviewRecord.dispatch} />}
             </TabsContent>
