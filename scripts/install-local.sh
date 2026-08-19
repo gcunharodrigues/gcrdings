@@ -49,5 +49,14 @@ killall Dock 2>/dev/null || true
 
 echo
 echo "Installed: $(stat -f '%Sm' -t '%d/%m %H:%M' "$installed/Contents/MacOS/gcrdings")"
-echo "Copies on disk: $(mdfind "kMDItemFSName == 'gcrdings.app'" 2>/dev/null | wc -l | tr -d ' ')"
+
+# Counted from the filesystem, not from Spotlight. mdfind right after
+# refreshing Launch Services reports zero while the index catches up, which
+# reads as "the install failed" when it did not.
+copies=$(find /Applications ~/Applications "$repo_root/target" -maxdepth 6 -name 'gcrdings.app' -type d 2>/dev/null | wc -l | tr -d ' ')
+echo "Copies on disk: $copies"
+if [ "$copies" != "1" ]; then
+  echo "WARNING: expected exactly one copy."
+fi
+
 echo "Your recordings and database were not touched."
