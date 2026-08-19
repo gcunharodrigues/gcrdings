@@ -150,25 +150,21 @@ export function ImportAudioDialog({
     onOpenChange(false);
   };
 
-  // Prevent closing during processing
+  // Dismissing is not cancelling. The import keeps running and reports from the
+  // queue panel; three separate locks used to hold the window for the length of
+  // an extraction, which could be minutes.
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen && isProcessing) {
-      return;
+      toast.info('Import continues in the background', {
+        description: 'Track it from the panel in the corner.',
+      });
     }
     onOpenChange(newOpen);
   };
 
-  const handleEscapeKeyDown = (event: KeyboardEvent) => {
-    if (isProcessing) {
-      event.preventDefault();
-    }
-  };
+  const handleEscapeKeyDown = (_event: KeyboardEvent) => {};
 
-  const handleInteractOutside = (event: Event) => {
-    if (isProcessing) {
-      event.preventDefault();
-    }
-  };
+  const handleInteractOutside = (_event: Event) => {};
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>

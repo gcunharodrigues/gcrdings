@@ -44,7 +44,11 @@ module.exports = {
   				DEFAULT: 'hsl(var(--accent))',
   				foreground: 'hsl(var(--accent-foreground))'
   			},
-  			destructive: {
+  			record: {
+  				DEFAULT: 'hsl(var(--record))',
+  				foreground: 'hsl(var(--record-foreground))'
+  			},
+			destructive: {
   				DEFAULT: 'hsl(var(--destructive))',
   				foreground: 'hsl(var(--destructive-foreground))'
   			},

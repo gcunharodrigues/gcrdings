@@ -1,9 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
-import { AlertTriangle, FolderOpen, Loader2 } from 'lucide-react';
+import { AlertTriangle, FolderOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -20,13 +19,6 @@ interface BatchCandidate {
 interface BatchScan {
   folder: string;
   candidates: BatchCandidate[];
-}
-
-interface BatchProgress {
-  completed: number;
-  total: number;
-  currentTitle: string;
-  failed: string[];
 }
 
 function formatSize(bytes: number): string {
@@ -53,29 +45,6 @@ export function BatchImportDialog({
 }) {
   const [scan, setScan] = useState<BatchScan | null>(null);
   const [isScanning, setIsScanning] = useState(false);
-  const [progress, setProgress] = useState<BatchProgress | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const unlisten: Array<Promise<() => void>> = [
-      listen<BatchProgress>('batch-import-progress', (event) => setProgress(event.payload)),
-      listen<BatchProgress>('batch-import-complete', (event) => {
-        setProgress(null);
-        const { total, failed } = event.payload;
-        const imported = total - failed.length;
-        if (failed.length === 0) {
-          toast.success(`${imported} Sessions imported`);
-        } else {
-          toast.warning(`${imported} of ${total} imported`, {
-            description: `Could not import: ${failed.join(', ')}`,
-          });
-        }
-        onFinished?.();
-        onOpenChange(false);
-      }),
-    ];
-    return () => { void Promise.all(unlisten).then((fns) => fns.forEach((fn) => fn())); };
-  }, [onFinished, onOpenChange, open]);
 
   const pickFolder = useCallback(async () => {
     setIsScanning(true);
@@ -92,16 +61,30 @@ export function BatchImportDialog({
 
   const start = useCallback(async () => {
     if (!scan) return;
+    const queueable = scan.candidates.filter((candidate) => candidate.rejection === null);
     try {
-      const total = await invoke<number>('api_start_batch_import', { files: scan.candidates });
-      setProgress({ completed: 0, total, currentTitle: '', failed: [] });
-    } catch (reason) {
-      log.warn('[batch-import] Batch could not start:', reason);
-      toast.error('The import could not be started.', {
-        description: 'Another import may already be running.',
+      await invoke('api_enqueue_imports', {
+        items: queueable.map((candidate) => ({
+          id: '',
+          path: candidate.path,
+          title: candidate.title,
+          language: null,
+          model: null,
+          provider: null,
+        })),
       });
+      // Closing immediately is the point: the queue panel reports from here on,
+      // and the window stays usable while the files import.
+      toast.success(`${queueable.length} files queued`, {
+        description: 'They import one after another. Track them in the corner.',
+      });
+      onFinished?.();
+      onOpenChange(false);
+    } catch (reason) {
+      log.warn('[batch-import] Batch could not be queued:', reason);
+      toast.error('The files could not be queued.');
     }
-  }, [scan]);
+  }, [onFinished, onOpenChange, scan]);
 
   const importable = scan?.candidates.filter((c) => c.rejection === null) ?? [];
   const rejected = scan?.candidates.filter((c) => c.rejection !== null) ?? [];
@@ -113,27 +96,7 @@ export function BatchImportDialog({
           <DialogTitle>Import a folder</DialogTitle>
         </DialogHeader>
 
-        {progress ? (
-          <div className="space-y-3 py-2">
-            <p className="flex items-center gap-2 text-sm text-foreground">
-              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-              Importing {progress.currentTitle || '…'}
-            </p>
-            <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
-              <div
-                className="h-full rounded-full bg-blue-600 transition-[width]"
-                style={{ width: `${(progress.completed / Math.max(1, progress.total)) * 100}%` }}
-              />
-            </div>
-            <p aria-live="polite" className="text-xs tabular-nums text-muted-foreground">
-              {progress.completed} of {progress.total}
-              {progress.failed.length > 0 && ` · ${progress.failed.length} failed`}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Files import one after another, and a failure does not stop the rest.
-            </p>
-          </div>
-        ) : !scan ? (
+        {!scan ? (
           <div className="py-4 text-center">
             <p className="mb-4 text-sm text-muted-foreground">
               Every audio and video file directly inside the folder is checked before anything is imported.

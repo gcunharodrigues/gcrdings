@@ -26,6 +26,7 @@ import { isAudioExtension, getAudioFormatsDisplayList } from '@/constants/audioF
 
 import { log } from '@/lib/logger';
 import { CommandPalette } from '@/components/CommandPalette';
+import { ImportQueuePanel } from '@/components/ImportAudio/ImportQueuePanel';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 
 const sourceSans3 = Source_Sans_3({
@@ -228,6 +229,7 @@ export default function RootLayout({
                               {/* Inside ImportDialogProvider: the palette offers
                                   Import Media and so consumes that context. */}
                               <CommandPalette />
+                              <ImportQueuePanel />
                               {/* Download progress toast provider - listens for background downloads */}
                               <DownloadProgressToastProvider />
 

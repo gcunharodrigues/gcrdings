@@ -14,13 +14,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 export type SidebarActionTone = 'primary' | 'accent' | 'neutral';
 
 const TONE_ICON: Record<SidebarActionTone, string> = {
-  primary: 'bg-red-500 text-white hover:bg-red-600 disabled:bg-red-300',
+  primary: 'bg-record text-record-foreground hover:brightness-110 disabled:opacity-60 brand-sheen',
   accent: 'bg-blue-50 text-blue-600 hover:bg-blue-100',
   neutral: 'text-muted-foreground hover:bg-muted',
 };
 
 const TONE_FULL: Record<SidebarActionTone, string> = {
-  primary: 'bg-red-500 text-white hover:bg-red-600 disabled:bg-red-300 disabled:cursor-not-allowed',
+  primary: 'bg-record text-record-foreground hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed brand-sheen',
   accent: 'bg-blue-100 text-foreground/90 hover:bg-blue-200',
   neutral: 'bg-secondary text-foreground/90 hover:bg-accent',
 };
