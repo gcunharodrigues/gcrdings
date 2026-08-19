@@ -19,7 +19,8 @@ use super::models::{
 #[cfg(target_os = "macos")]
 mod mac {
     use super::*;
-    use cidre::{arc, define_obj_type, ns, objc, sc};
+    use cidre::{arc, cf, cg, define_obj_type, ns, objc, sc};
+    use std::path::Path;
 
     /// Held for the life of a recording. Dropping the stream stops capture, so
     /// it must outlive the command that started it.
@@ -105,9 +106,60 @@ mod mac {
         Ok(CaptureTargets { displays, windows })
     }
 
+    /// A still of what recording this target would capture.
+    ///
+    /// A list of window titles asks someone to remember which "Untitled" is
+    /// which. A picture does not. Encoded as a PNG data URI so the frontend can
+    /// render it directly, with no temporary files to clean up.
+    pub async fn thumbnail(target: &CaptureTarget, width: usize) -> Option<String> {
+        let content = shareable().await.ok()?;
+
+        let filter = match target {
+            CaptureTarget::Display { id, .. } => {
+                let displays = content.displays();
+                let display = displays.iter().find(|d| d.display_id().0 == *id)?;
+                sc::ContentFilter::with_display_excluding_windows(&display, &ns::Array::new())
+            }
+            CaptureTarget::Window { id, .. } => {
+                let windows = content.windows();
+                let window = windows.iter().find(|w| w.id() == *id)?;
+                sc::ContentFilter::with_desktop_independent_window(&window)
+            }
+        };
+
+        // Captured small on purpose. A picker showing twenty full-resolution
+        // screenshots would stall opening for seconds and move tens of
+        // megabytes across the IPC boundary for images drawn at 160 px.
+        let mut cfg = sc::StreamCfg::new();
+        let size = filter.content_rect();
+        let aspect = if size.size.width > 0.0 {
+            size.size.height / size.size.width
+        } else {
+            0.625
+        };
+        cfg.set_width(width);
+        cfg.set_height(((width as f64) * aspect).round().max(1.0) as usize);
+
+        let image = sc::ScreenshotManager::capture_image(&filter, &cfg)
+            .await
+            .ok()?;
+
+        let mut data = cf::DataMut::with_capacity(0);
+        let mut dst =
+            cg::ImageDst::with_data(&mut data, cf::String::from_str("public.png").as_ref(), 1)?;
+        dst.add_image(&image, None);
+        if !dst.finalize() {
+            return None;
+        }
+
+        use base64::Engine;
+        let encoded = base64::engine::general_purpose::STANDARD.encode(data.as_slice());
+        Some(format!("data:image/png;base64,{encoded}"))
+    }
+
     pub async fn start(
         target: &CaptureTarget,
-        destination: &PathBuf,
+        destination: &Path,
         started_at_offset_ms: i64,
     ) -> Result<ActiveRecording, ScreenCaptureError> {
         let content = shareable().await?;
@@ -162,7 +214,7 @@ mod mac {
             stream,
             output,
             target: target.clone(),
-            path: destination.clone(),
+            path: destination.to_path_buf(),
             started_at_offset_ms,
         })
     }
@@ -196,6 +248,48 @@ pub async fn api_list_capture_targets<R: Runtime>(
     }
     #[cfg(not(target_os = "macos"))]
     Err(ScreenCaptureError::Unsupported)
+}
+
+/// One thumbnail at a time, so the picker can list targets immediately and let
+/// the pictures arrive as they are ready.
+#[tauri::command]
+pub async fn api_capture_target_thumbnail<R: Runtime>(
+    _app: AppHandle<R>,
+    target: CaptureTarget,
+    width: Option<u32>,
+) -> Result<Option<String>, ScreenCaptureError> {
+    #[cfg(target_os = "macos")]
+    {
+        // ScreenCaptureKit objects are not Sync, and capture_image borrows the
+        // filter across its own await — so the whole capture runs on a thread
+        // of its own and only the encoded PNG, a plain String, crosses back.
+        // Tauri commands must return Send futures; this is what makes that
+        // possible without lying about the objects' thread-safety.
+        let width = width.unwrap_or(320) as usize;
+        let (tx, rx) = tokio::sync::oneshot::channel();
+
+        std::thread::spawn(move || {
+            let runtime = match tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+            {
+                Ok(runtime) => runtime,
+                Err(_) => {
+                    let _ = tx.send(None);
+                    return;
+                }
+            };
+            let result = runtime.block_on(mac::thumbnail(&target, width));
+            let _ = tx.send(result);
+        });
+
+        Ok(rx.await.unwrap_or(None))
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = (target, width);
+        Ok(None)
+    }
 }
 
 #[tauri::command]

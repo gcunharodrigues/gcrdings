@@ -693,6 +693,7 @@ pub fn run() {
             providers::commands::api_confirm_provider_transfer,
             verifiable_record::commands::api_get_verifiable_record,
             screen_capture::commands::api_list_capture_targets,
+            screen_capture::commands::api_capture_target_thumbnail,
             screen_capture::commands::api_start_screen_recording,
             screen_capture::commands::api_stop_screen_recording,
             screen_capture::commands::api_get_screen_recording_state,
