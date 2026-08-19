@@ -7,6 +7,7 @@ import { load } from '@tauri-apps/plugin-store';
 import { invoke } from '@tauri-apps/api/core';
 import { Analytics } from '@/lib/analytics';
 import AnalyticsDataModal from './AnalyticsDataModal';
+import { log } from '@/lib/logger';
 
 const ANALYTICS_DEFAULT_OFF_MIGRATION_KEY = 'analyticsDefaultOffMigrationV1';
 
@@ -113,7 +114,7 @@ export default function AnalyticsConsentSwitch() {
           console.error('Failed to track analytics enabled:', error);
         }
 
-        console.log('Analytics re-enabled successfully');
+        log.debug('Analytics re-enabled successfully');
       } else {
         // Track that user disabled analytics BEFORE disabling
         try {
@@ -123,7 +124,7 @@ export default function AnalyticsConsentSwitch() {
         }
 
         await Analytics.disable();
-        console.log('Analytics disabled successfully');
+        log.debug('Analytics disabled successfully');
       }
     } catch (error) {
       console.error('Failed to toggle analytics:', error);

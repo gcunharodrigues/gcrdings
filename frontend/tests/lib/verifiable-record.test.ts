@@ -30,6 +30,8 @@ describe("verifiable record UI contract", () => {
     const tauri = fs.readFileSync(path.join(ROOT, "frontend/src-tauri/tauri.conf.json"), "utf8");
     const controls = [
       "frontend/src/components/MeetingDetails/SummaryPanel.tsx",
+      "frontend/src/components/MeetingDetails/shapes/FindingViews.tsx",
+      "frontend/src/components/MeetingDetails/shapes/ChartView.tsx",
       "frontend/src/components/SummaryModelSettings.tsx",
       "frontend/src/app/meeting-details/page-content.tsx",
     ].map((file) => fs.readFileSync(path.join(ROOT, file), "utf8")).join("\n");

@@ -21,6 +21,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { MeetingMetadata, StoredTranscript } from '@/services/indexedDBService';
 import { cn } from '@/lib/utils';
+import { log } from '@/lib/logger';
+import { toast } from 'sonner';
 
 interface TranscriptRecoveryProps {
   isOpen: boolean;
@@ -82,11 +84,13 @@ export function TranscriptRecovery({
     setIsRecovering(true);
     try {
       const result = await onRecover(selectedMeetingId);
-      console.log('Recovery successful:', result);
+      log.debug('Recovery successful:', result);
       onClose();
     } catch (error) {
       console.error('Recovery failed:', error);
-      alert('Failed to recover meeting. Please try again.');
+      toast.error('The Session could not be recovered.', {
+        description: 'Nothing was removed. You can try again.',
+      });
     } finally {
       setIsRecovering(false);
     }
@@ -106,7 +110,7 @@ export function TranscriptRecovery({
       setPreviewTranscripts([]);
     } catch (error) {
       console.error('Delete failed:', error);
-      alert('Failed to delete meeting. Please try again.');
+      toast.error('The Session could not be deleted.');
     } finally {
       setIsDeleting(false);
     }
