@@ -54,6 +54,7 @@ pub mod providers;
 
 #[used]
 static BUILD_COMMIT_MARKER: &str = concat!("gcrdings-build-commit:", env!("GCRDINGS_BUILD_COMMIT"));
+pub mod screen_capture;
 pub mod state;
 pub mod summary;
 pub mod tray;
@@ -691,6 +692,10 @@ pub fn run() {
             providers::commands::api_preview_provider_transfer,
             providers::commands::api_confirm_provider_transfer,
             verifiable_record::commands::api_get_verifiable_record,
+            screen_capture::commands::api_list_capture_targets,
+            screen_capture::commands::api_start_screen_recording,
+            screen_capture::commands::api_stop_screen_recording,
+            screen_capture::commands::api_get_screen_recording_state,
             clips::commands::api_list_clips,
             clips::commands::api_create_clip,
             clips::commands::api_rename_clip,
