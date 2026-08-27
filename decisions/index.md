@@ -9,4 +9,4 @@ okf_version: "0.2"
 See also: [log.md](./log.md) (append-only ledger) · [README.md](./README.md) (convention)
 
 ## Records
-- [Public GitHub source-only boundary](./0001-public-source-boundary.md) — Current public distribution exposes source only; binary publication remains aspirational and requires new assurance.
+_(none yet)_
