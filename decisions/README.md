@@ -16,7 +16,9 @@ Cloud's [Open Knowledge Format (OKF)](https://github.com/GoogleCloudPlatform/kno
   nothing else. A *nested* `index.md` with frontmatter is a finding — it would read as a second root.
 - **`README.md`** (this file) — the convention. OKF-exempt project doc.
 
-**v0.2 provenance.** Every concept file records who produced it and when, in place of a bare date:
+**v0.2 provenance.** Every concept file records who produced it and when. `generated.at` is an ISO-8601
+datetime with an explicit UTC offset for the last material content change represented by the file, not the
+original decision date or a later non-material file touch:
 
 ```yaml
 generated: {by: human:alice, at: 2026-07-26T12:00:00-03:00}
@@ -25,8 +27,7 @@ generated: {by: human:alice, at: 2026-07-26T12:00:00-03:00}
 The `by` prefix is the actor — `human:<name>` (a person decided or reviewed it; an ADR is always this),
 `process:<name>` (a deterministic job wrote it), or `<producer>/<version>` (a model wrote it, e.g.
 `claude-opus-4/1.0` — provisional until a human is recorded). That prefix is what lets a reader tell a
-reviewed document from a generated one; a timestamp alone cannot. `at` is the date the content was
-decided, not the date the file was last touched — git holds that.
+reviewed document from a generated one; a timestamp alone cannot. Git records later non-material touches.
 
 Gate: `okf verify decisions/` (format) + `okf index --check decisions/` (index freshness), enforced on
 every commit by the pre-commit hook. Installed by `okf-bootstrap`; `okf` lives on PATH, never as a copy

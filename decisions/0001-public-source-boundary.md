@@ -2,7 +2,7 @@
 type: ADR
 title: Public GitHub source-only boundary
 description: Current public distribution exposes source only; binary publication remains aspirational and requires new assurance.
-generated: {by: human:guilherme, at: 2026-08-27T15:12:33-03:00}
+generated: {by: codex/1.0, at: 2026-08-27T15:12:33-03:00}
 ---
 
 # Public GitHub source-only boundary
