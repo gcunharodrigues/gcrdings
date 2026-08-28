@@ -5,8 +5,12 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type { PermissionStatus, OnboardingPermissions } from '@/types/onboarding';
 import { initializeFirstLaunchDatabase } from '@/lib/onboarding-database';
+import { log } from '@/lib/logger';
 
 const PARAKEET_MODEL = 'parakeet-tdt-0.6b-v3-int8';
+
+/** Welcome, Setup, Download, Permissions, Reading preferences. */
+export const LAST_ONBOARDING_STEP = 5;
 
 interface OnboardingStatus {
   version: string;
@@ -91,11 +95,11 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   // Initialize database silently in background (moved from SetupOverviewStep)
   const initializeDatabaseInBackground = async () => {
     try {
-      console.log('[OnboardingContext] Starting background database initialization');
+      log.debug('[OnboardingContext] Starting background database initialization');
       const isFirstLaunch = await invoke<boolean>('check_first_launch');
 
       if (!isFirstLaunch) {
-        console.log('[OnboardingContext] Database exists, skipping initialization');
+        log.debug('[OnboardingContext] Database exists, skipping initialization');
         setDatabaseExists(true);
         return;
       }
@@ -110,7 +114,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
   const performAutoDetection = async () => {
     const outcome = await initializeFirstLaunchDatabase(invoke);
-    console.log(`[OnboardingContext] First-launch database ${outcome}`);
+    log.debug(`[OnboardingContext] First-launch database ${outcome}`);
     setDatabaseExists(true);
   };
 
@@ -193,7 +197,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     try {
       const isFirstLaunch = await invoke<boolean>('check_first_launch');
       setDatabaseExists(!isFirstLaunch);
-      console.log('[OnboardingContext] Database exists:', !isFirstLaunch);
+      log.debug('[OnboardingContext] Database exists:', !isFirstLaunch);
     } catch (error) {
       console.error('[OnboardingContext] Failed to check database status:', error);
       setDatabaseExists(false);
@@ -204,13 +208,13 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     try {
       const status = await invoke<OnboardingStatus | null>('get_onboarding_status');
       if (status) {
-        console.log('[OnboardingContext] Loaded saved status:', status);
+        log.debug('[OnboardingContext] Loaded saved status:', status);
 
         if (status.completed) {
           setCurrentStep(status.current_step);
           setCompleted(true);
           setParakeetDownloaded(status.model_status.parakeet === 'downloaded');
-          console.log('[OnboardingContext] Restored completed onboarding status without model verification');
+          log.debug('[OnboardingContext] Restored completed onboarding status without model verification');
           return;
         }
 
@@ -221,7 +225,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
         setCompleted(verifiedStatus.completed);
         setParakeetDownloaded(verifiedStatus.parakeetDownloaded);
 
-        console.log('[OnboardingContext] Verified status:', verifiedStatus);
+        log.debug('[OnboardingContext] Verified status:', verifiedStatus);
 
         // Check if any downloads are active to restore isBackgroundDownloading state
         await checkActiveDownloads();
@@ -239,19 +243,19 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     try {
       await invoke('parakeet_init');
       parakeetDownloaded = await invoke<boolean>('parakeet_has_available_models');
-      console.log('[OnboardingContext] Parakeet verified on disk:', parakeetDownloaded);
+      log.debug('[OnboardingContext] Parakeet verified on disk:', parakeetDownloaded);
     } catch (error) {
       console.warn('[OnboardingContext] Failed to verify Parakeet:', error);
       parakeetDownloaded = false;
     }
 
     // Determine the correct step based on verified status
-    // New simplified flow: Step 1: Welcome, Step 2: Setup Overview, Step 3: Download Progress, Step 4: Permissions (macOS)
+    // Flow: 1 Welcome, 2 Setup Overview, 3 Download Progress, 4 Permissions (macOS),
+    // 5 Reading preferences
     let currentStep = savedStatus.current_step;
     let completed = savedStatus.completed;
 
-    // Clamp step to new max (4)
-    if (currentStep > 4) {
+    if (currentStep > LAST_ONBOARDING_STEP) {
       currentStep = 3; // Go to download progress step
     }
 
@@ -269,7 +273,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     // This prevents a race condition where a download completion event triggers a save
     // that overwrites the "completed" status set by completeOnboarding
     if (isCompletingRef.current) {
-      console.log('[OnboardingContext] Skipping saveOnboardingStatus because completion is in progress');
+      log.debug('[OnboardingContext] Skipping saveOnboardingStatus because completion is in progress');
       return;
     }
 
@@ -305,7 +309,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
       await invoke('complete_onboarding');
       setCompleted(true);
-      console.log('[OnboardingContext] Onboarding completed');
+      log.debug('[OnboardingContext] Onboarding completed');
 
       // Reset the flag so subsequent state updates can be saved
       isCompletingRef.current = false;
@@ -320,7 +324,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   const startBackgroundDownloads = async ({
     includeParakeet,
   }: StartBackgroundDownloadsOptions) => {
-    console.log('[OnboardingContext] Starting background download');
+    log.debug('[OnboardingContext] Starting background download');
 
     try {
       const shouldStartParakeet = includeParakeet && !parakeetDownloaded;
@@ -332,7 +336,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
       // Start Parakeet download first (speech recognition - always required)
       if (shouldStartParakeet) {
-        console.log('[OnboardingContext] Starting Parakeet download');
+        log.debug('[OnboardingContext] Starting Parakeet download');
         invoke('parakeet_download_model', { modelName: PARAKEET_MODEL })
           .catch(err => console.error('[OnboardingContext] Parakeet download failed:', err));
       }
@@ -351,7 +355,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       const isDownloading = models.some(m => m.status && (typeof m.status === 'object' ? 'Downloading' in m.status : m.status === 'Downloading'));
       
       if (isDownloading) {
-        console.log('[OnboardingContext] Detected active background downloads on mount');
+        log.debug('[OnboardingContext] Detected active background downloads on mount');
         setIsBackgroundDownloading(true);
       }
       
@@ -361,7 +365,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   };
 
   const retryParakeetDownload = async () => {
-    console.log('[OnboardingContext] Retrying Parakeet download');
+    log.debug('[OnboardingContext] Retrying Parakeet download');
     try {
       await invoke('parakeet_retry_download', { modelName: PARAKEET_MODEL });
     } catch (error) {
@@ -378,15 +382,11 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   }, []);
 
   const goToStep = useCallback((step: number) => {
-    setCurrentStep(Math.max(1, Math.min(step, 4)));
+    setCurrentStep(Math.max(1, Math.min(step, LAST_ONBOARDING_STEP)));
   }, []);
 
   const goNext = useCallback(() => {
-    setCurrentStep((prev: number) => {
-      const next = prev + 1;
-      // Don't go past step 4
-      return Math.min(next, 4);
-    });
+    setCurrentStep((prev: number) => Math.min(prev + 1, LAST_ONBOARDING_STEP));
   }, []);
 
   const goPrevious = useCallback(() => {

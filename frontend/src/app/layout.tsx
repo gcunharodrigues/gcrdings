@@ -24,6 +24,8 @@ import { ImportAudioDialog, ImportDropOverlay } from '@/components/ImportAudio'
 import { ImportDialogProvider } from '@/contexts/ImportDialogContext'
 import { isAudioExtension, getAudioFormatsDisplayList } from '@/constants/audioFormats'
 
+import { log } from '@/lib/logger';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 
 const sourceSans3 = Source_Sans_3({
   subsets: ['latin'],
@@ -75,10 +77,10 @@ export default function RootLayout({
         setOnboardingCompleted(isComplete)
 
         if (!isComplete) {
-          console.log('[Layout] Onboarding not completed, showing onboarding flow')
+          log.debug('[Layout] Onboarding not completed, showing onboarding flow')
           setShowOnboarding(true)
         } else {
-          console.log('[Layout] Onboarding completed, showing main app')
+          log.debug('[Layout] Onboarding completed, showing main app')
         }
       })
       .catch((error) => {
@@ -100,7 +102,7 @@ export default function RootLayout({
   useEffect(() => {
     // Listen for tray recording toggle request
     const unlisten = listen('request-recording-toggle', () => {
-      console.log('[Layout] Received request-recording-toggle from tray');
+      log.debug('[Layout] Received request-recording-toggle from tray');
 
       if (showOnboarding) {
         toast.error("Please complete setup first", {
@@ -108,7 +110,7 @@ export default function RootLayout({
         });
       } else {
         // If in main app, forward to useRecordingStart via window event
-        console.log('[Layout] Forwarding to start-recording-from-sidebar');
+        log.debug('[Layout] Forwarding to start-recording-from-sidebar');
         window.dispatchEvent(new CustomEvent('start-recording-from-sidebar'));
       }
     });
@@ -201,7 +203,7 @@ export default function RootLayout({
   }, []);
 
   const handleOnboardingComplete = () => {
-    console.log('[Layout] Onboarding completed, reloading app')
+    log.debug('[Layout] Onboarding completed, reloading app')
     setShowOnboarding(false)
     setOnboardingCompleted(true)
     // Optionally reload the window to ensure all state is fresh
@@ -211,6 +213,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${sourceSans3.variable} font-sans antialiased`}>
+        <ThemeProvider>
         <AnalyticsProvider>
           <RecordingStateProvider>
             <TranscriptProvider>
@@ -251,6 +254,7 @@ export default function RootLayout({
             </TranscriptProvider>
           </RecordingStateProvider>
         </AnalyticsProvider>
+        </ThemeProvider>
 
         <Toaster position="bottom-center" richColors closeButton />
       </body>

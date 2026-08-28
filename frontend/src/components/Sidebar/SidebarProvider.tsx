@@ -5,6 +5,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import Analytics from '@/lib/analytics';
 import { invoke } from '@tauri-apps/api/core';
 import { useRecordingState } from '@/contexts/RecordingStateContext';
+import { ConfirmationModal } from '@/components/ConfirmationModel/confirmation-modal';
+import { log } from '@/lib/logger';
 
 
 interface SidebarItem {
@@ -17,6 +19,8 @@ interface SidebarItem {
 export interface CurrentMeeting {
   id: string;
   title: string;
+  /** ISO timestamp. Absent for the placeholder entries the sidebar creates. */
+  createdAt?: string;
 }
 
 // Search result type for transcript search
@@ -88,12 +92,14 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
 
+  // A blocked navigation parks the target here so the guard can be answered in
+  // an in-app dialog instead of the OS confirm sheet. navigate() stays
+  // synchronous because every caller branches on its boolean result.
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+
   const navigate = React.useCallback((path: string, bypassGuard = false) => {
-    if (
-      !bypassGuard &&
-      hasUnsavedReviewChangesRef.current &&
-      !window.confirm('You have unsaved transcript changes. Leave this Session and discard them?')
-    ) {
+    if (!bypassGuard && hasUnsavedReviewChangesRef.current) {
+      setPendingNavigation(path);
       return false;
     }
     router.push(path);
@@ -104,10 +110,13 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const fetchMeetings = React.useCallback(async () => {
     if (serverAddress) {
       try {
-        const meetings = await invoke('api_get_meetings') as Array<{ id: string, title: string }>;
+        const meetings = await invoke('api_get_meetings') as Array<{ id: string, title: string, created_at?: string }>;
+        // created_at was being dropped here, which is why the list had no dates
+        // and no way to group by recency.
         const transformedMeetings = meetings.map((meeting: any) => ({
           id: meeting.id,
-          title: meeting.title
+          title: meeting.title,
+          createdAt: meeting.created_at ?? meeting.updated_at,
         }));
         setMeetings(transformedMeetings);
         Analytics.trackBackendConnection(true);
@@ -134,10 +143,10 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const baseItems: SidebarItem[] = [
     {
       id: 'meetings',
-      title: 'Meeting Notes',
+      title: 'Sessions',
       type: 'folder' as const,
       children: [
-        ...meetings.map(meeting => ({ id: meeting.id, title: meeting.title, type: 'file' as const }))
+        ...meetings.map(meeting => ({ id: meeting.id, title: meeting.title, createdAt: meeting.createdAt, type: 'file' as const }))
       ]
     },
   ];
@@ -166,11 +175,11 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
       // Check if already on home page
       if (pathname === '/') {
         // Already on home - trigger recording directly via custom event
-        console.log('Triggering recording from sidebar (already on home page)');
+        log.debug('Triggering recording from sidebar (already on home page)');
         window.dispatchEvent(new CustomEvent('start-recording-from-sidebar'));
       } else {
         // Not on home - navigate and use auto-start mechanism
-        console.log('Navigating to home page with auto-start flag');
+        log.debug('Navigating to home page with auto-start flag');
         if (!navigate('/')) return;
         sessionStorage.setItem('autoStartRecording', 'true');
       }
@@ -213,7 +222,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
       clearInterval(activeSummaryPolls.get(meetingId)!);
     }
 
-    console.log(`📊 Starting polling for meeting ${meetingId}, process ${processId}`);
+    log.debug(`📊 Starting polling for meeting ${meetingId}, process ${processId}`);
 
     let pollCount = 0;
     const MAX_POLLS = 200; // ~16.5 minutes at 5-second intervals (slightly longer than backend's 15-min timeout to avoid race conditions)
@@ -241,14 +250,14 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
           meetingId: meetingId,
         }) as any;
 
-        console.log(`📊 Polling update for ${meetingId}:`, result.status);
+        log.debug(`📊 Polling update for ${meetingId}:`, result.status);
 
         // Call the update callback with result
         onUpdate(result);
 
         // Stop polling if completed, error, failed, cancelled, or idle (after initial processing)
         if (result.status === 'completed' || result.status === 'error' || result.status === 'failed' || result.status === 'cancelled') {
-          console.log(`Polling completed for ${meetingId}, status: ${result.status}`);
+          log.debug(`Polling completed for ${meetingId}, status: ${result.status}`);
           clearInterval(pollInterval);
           setActiveSummaryPolls(prev => {
             const next = new Map(prev);
@@ -257,7 +266,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
           });
         } else if (result.status === 'idle' && pollCount > 1) {
           // If we get 'idle' after polling started, process completed/disappeared
-          console.log(`Process completed or not found for ${meetingId}, stopping poll`);
+          log.debug(`Process completed or not found for ${meetingId}, stopping poll`);
           clearInterval(pollInterval);
           setActiveSummaryPolls(prev => {
             const next = new Map(prev);
@@ -287,7 +296,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const stopSummaryPolling = React.useCallback((meetingId: string) => {
     const pollInterval = activeSummaryPolls.get(meetingId);
     if (pollInterval) {
-      console.log(`⏹️ Stopping polling for meeting ${meetingId}`);
+      log.debug(`⏹️ Stopping polling for meeting ${meetingId}`);
       clearInterval(pollInterval);
       setActiveSummaryPolls(prev => {
         const next = new Map(prev);
@@ -300,7 +309,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   // Cleanup all polling intervals on unmount
   useEffect(() => {
     return () => {
-      console.log('🧹 Cleaning up all summary polling intervals');
+      log.debug('🧹 Cleaning up all summary polling intervals');
       activeSummaryPolls.forEach(interval => clearInterval(interval));
     };
   }, [activeSummaryPolls]);
@@ -335,6 +344,19 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 
     }}>
       {children}
+      <ConfirmationModal
+        isOpen={pendingNavigation !== null}
+        title="Discard transcript corrections?"
+        text="This Session has unsaved transcript corrections. Leaving now discards them."
+        confirmLabel="Discard and leave"
+        cancelLabel="Stay here"
+        onConfirm={() => {
+          const target = pendingNavigation;
+          setPendingNavigation(null);
+          if (target) router.push(target);
+        }}
+        onCancel={() => setPendingNavigation(null)}
+      />
     </SidebarContext.Provider>
   );
 }

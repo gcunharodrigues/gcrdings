@@ -4,9 +4,11 @@ import type { Transcript } from "@/types";
 import type { ReviewRecordAction, ReviewRecordState } from "@/lib/review-record";
 import type { SessionAudioPlayer } from "@/hooks/useAudioPlayer";
 import { AudioPlayer } from "@/components/AudioPlayer";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { TranscriptButtonGroup } from "./TranscriptButtonGroup";
+import { ConfirmationModal } from "@/components/ConfirmationModel/confirmation-modal";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 
 interface TranscriptPanelProps {
   state: ReviewRecordState;
@@ -64,6 +66,7 @@ export function TranscriptPanel({
     : state.present.transcriptOrder;
   const saving = state.saveStatus.type === "saving";
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [confirmReload, setConfirmReload] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const virtualizer = useVirtualizer({
     count: visibleIds.length,
@@ -71,6 +74,24 @@ export function TranscriptPanel({
     estimateSize: () => 150,
     overscan: 5,
   });
+
+  // ⌘S and ⌘Z are bound in useReviewRecord, next to the state they act on.
+  // Binding them here as well fired both listeners, so one ⌘Z undid two edits.
+  useKeyboardShortcuts(
+    useMemo(
+      () => [
+        {
+          key: ' ',
+          handler: () => {
+            if (audioPlayer.status !== "ready") return;
+            if (audioPlayer.isPlaying) audioPlayer.pause();
+            else void audioPlayer.play();
+          },
+        },
+      ],
+      [audioPlayer],
+    ),
+  );
 
   const playPassage = async (id: string, seconds?: number) => {
     const index = visibleIds.indexOf(id);
@@ -86,14 +107,14 @@ export function TranscriptPanel({
     <section
       aria-labelledby="principal-transcript-heading"
       data-review-column="transcript"
-      className="flex min-h-0 flex-col overflow-hidden border-x border-gray-200 bg-white"
+      className="flex min-h-0 flex-col overflow-hidden border-x border-border bg-card"
     >
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 p-4">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border p-4">
         <div>
-          <h2 id="principal-transcript-heading" className="font-semibold text-gray-900">
+          <h2 id="principal-transcript-heading" className="font-semibold text-foreground">
             Principal transcript
           </h2>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted-foreground">
             {loadedCount ?? visibleIds.length} of {totalCount ?? state.present.transcriptOrder.length} passages
           </p>
         </div>
@@ -111,7 +132,7 @@ export function TranscriptPanel({
             type="button"
             onClick={() => dispatch({ type: "undo" })}
             disabled={state.past.length === 0 || saving}
-            aria-label="Undo transcript edit"
+            aria-label="Undo transcript edit" title="Undo (⌘Z)"
             className="rounded border px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-50"
           >
             Undo
@@ -120,7 +141,7 @@ export function TranscriptPanel({
             type="button"
             onClick={() => dispatch({ type: "redo" })}
             disabled={state.future.length === 0 || saving}
-            aria-label="Redo transcript edit"
+            aria-label="Redo transcript edit" title="Redo (⇧⌘Z)"
             className="rounded border px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-50"
           >
             Redo
@@ -129,7 +150,7 @@ export function TranscriptPanel({
             type="button"
             onClick={() => void save()}
             disabled={!state.dirty || saving}
-            aria-label="Save principal transcript"
+            aria-label="Save principal transcript" title="Save (⌘S)"
             className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save"}
@@ -142,21 +163,29 @@ export function TranscriptPanel({
           <p>Save failed. Your edits remain available. {state.saveStatus.error}</p>
           <button
             type="button"
-            onClick={() => {
-              if (window.confirm("Reload the latest saved record and discard this draft?")) void reload();
-            }}
-            className="rounded border border-red-300 bg-white px-3 py-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700"
+            onClick={() => setConfirmReload(true)}
+            className="rounded border border-red-300 bg-card px-3 py-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700"
           >
             Reload latest
           </button>
         </div>
       )}
 
+      <ConfirmationModal
+        isOpen={confirmReload}
+        title="Discard this draft?"
+        text="Reloading replaces your unsaved edits with the latest saved record."
+        confirmLabel="Discard and reload"
+        cancelLabel="Keep editing"
+        onConfirm={() => { setConfirmReload(false); void reload(); }}
+        onCancel={() => setConfirmReload(false)}
+      />
+
       <AudioPlayer player={audioPlayer} />
 
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto p-4">
         {visibleIds.length === 0 ? (
-          <p className="rounded border border-dashed p-6 text-center text-sm text-gray-600">
+          <p className="rounded border border-dashed p-6 text-center text-sm text-muted-foreground">
             No transcript passages are available yet.
           </p>
         ) : (
@@ -172,7 +201,7 @@ export function TranscriptPanel({
               ref={virtualizer.measureElement}
               data-index={row.index}
               aria-current={selectedId === id ? "true" : undefined}
-              className={`absolute left-0 top-0 w-full rounded-lg border p-3 focus-within:ring-2 focus-within:ring-blue-600 ${selectedId === id ? "border-blue-600 bg-blue-50" : "border-gray-200 bg-white"}`}
+              className={`absolute left-0 top-0 w-full rounded-lg border p-3 focus-within:ring-2 focus-within:ring-blue-600 ${selectedId === id ? "border-blue-600 bg-blue-50" : "border-border bg-card"}`}
               style={{ transform: `translateY(${row.start}px)` }}
             >
               <div className="mb-2 flex items-center gap-2">
@@ -194,7 +223,7 @@ export function TranscriptPanel({
                     transcriptId: id,
                     participantId: event.target.value,
                   })}
-                  className="min-w-0 flex-1 rounded border border-gray-300 px-2 py-1 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                  className="min-w-0 flex-1 rounded border border-border px-2 py-1 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
                 >
                   {!assignedParticipant && (
                     <option value={transcript.participantId}>Unknown participant · {transcript.participantId}</option>
@@ -217,7 +246,7 @@ export function TranscriptPanel({
                   text: event.target.value,
                 })}
                 rows={Math.max(2, Math.ceil(transcript.text.length / 80))}
-                className="w-full resize-y rounded border border-gray-300 p-2 text-sm leading-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                className="w-full resize-y rounded border border-border p-2 text-sm leading-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
               />
               {transcript.text.length === 0 && (
                 <p className="mt-1 text-xs text-amber-800">This saved passage will be empty.</p>
@@ -232,7 +261,7 @@ export function TranscriptPanel({
             type="button"
             onClick={onLoadMore}
             disabled={isLoadingMore}
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-50"
+            className="w-full rounded border border-border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-50"
           >
             {isLoadingMore ? "Loading…" : "Load more passages"}
           </button>

@@ -13,6 +13,7 @@ import { ExternalProviderSettings } from '@/components/ExternalProviderSettings'
 import { BetaSettings } from '@/components/BetaSettings';
 import { useConfig } from '@/contexts/ConfigContext';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { log } from '@/lib/logger';
 
 // Tabs configuration (constant)
 const TABS = [
@@ -38,7 +39,7 @@ export default function SettingsPage() {
       try {
         const config = await invoke('api_get_transcript_config') as any;
         if (config) {
-          console.log('Loaded saved transcript config:', config);
+          log.debug('Loaded saved transcript config:', config);
           setTranscriptModelConfig({
             provider: config.provider || 'localWhisper',
             model: config.model || 'large-v3',
