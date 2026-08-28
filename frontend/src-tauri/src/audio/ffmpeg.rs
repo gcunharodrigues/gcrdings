@@ -12,6 +12,69 @@ const EXECUTABLE_NAME: &str = "ffmpeg";
 const APPROVED_BUNDLED_FFMPEG_SHA256: &str =
     "77d2c853f431318d55ec02676d9b2f185ebfdddb9f7677a251fbe453affe025a";
 
+/// The bundle identifier the sidecar must be signed as, when it is signed.
+#[cfg(target_os = "macos")]
+const EXPECTED_SIGNING_IDENTIFIER: &str = "com.gcrdings.app";
+
+/// Whether this binary is sealed inside a validly signed gcrdings bundle.
+///
+/// The pinned digest above is the binary as published upstream. Bundling on
+/// macOS re-signs every sidecar, which rewrites bytes inside the Mach-O and
+/// changes that digest, so in a packaged build the pin can never match. That is
+/// the packaging step doing its job, not a tampering signal.
+///
+/// Where the pin cannot apply, the guarantee is the bundle's own signature. The
+/// sidecar is sealed into it as nested code: appending a single byte to
+/// Contents/MacOS/ffmpeg makes `codesign --verify --deep --strict` on the .app
+/// fail with "In subcomponent: .../ffmpeg". That is the same seal macOS
+/// enforces at exec; this checks it beforehand so nothing unverified is spawned.
+///
+/// Verifying the sidecar alone would not do. Tauri signs it under its own
+/// identifier — ffmpeg-<hash>, not the application's — so a signature on the
+/// file says nothing about which app it belongs to. Only the enclosing bundle
+/// carries that claim.
+#[cfg(target_os = "macos")]
+fn is_sealed_in_signed_bundle(path: &Path) -> bool {
+    use std::process::Command;
+
+    // Contents/MacOS/ffmpeg -> MacOS -> Contents -> *.app
+    let Some(bundle) = path
+        .ancestors()
+        .find(|ancestor| ancestor.extension().is_some_and(|ext| ext == "app"))
+    else {
+        return false;
+    };
+
+    let verified = Command::new("/usr/bin/codesign")
+        .args(["--verify", "--deep", "--strict", "--"])
+        .arg(bundle)
+        .output();
+    match verified {
+        Ok(output) if output.status.success() => {}
+        _ => return false,
+    }
+
+    // A valid signature is not enough on its own: any signed bundle would pass.
+    // It must claim to be this application.
+    let described = Command::new("/usr/bin/codesign")
+        .args(["--display", "--verbose=2", "--"])
+        .arg(bundle)
+        .output();
+    match described {
+        Ok(output) => String::from_utf8_lossy(&output.stderr)
+            .lines()
+            .any(|line| line.trim() == format!("Identifier={EXPECTED_SIGNING_IDENTIFIER}")),
+        Err(_) => false,
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn is_sealed_in_signed_bundle(_path: &Path) -> bool {
+    // Only macOS re-signs sidecars during bundling, so elsewhere the pinned
+    // digest remains the only accepted proof.
+    false
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FfmpegError {
     ExecutableLocationUnavailable,
@@ -140,7 +203,13 @@ pub fn verify_bundled_ffmpeg_for_spawn(
     if !opened_metadata.file_type().is_file() || !is_executable(&opened_metadata) {
         return Err(FfmpegError::BundledBinaryInvalid);
     }
-    if sha256_file(&mut file).map_err(|_| FfmpegError::BundledBinaryInvalid)? != expected_sha256 {
+    // Either proof is accepted, never neither: the pinned upstream digest, or a
+    // signature naming this application. Everything after this point — staging,
+    // the dev/ino check, the re-hash — is unchanged, so a binary that satisfies
+    // neither is still never spawned.
+    let candidate_digest = sha256_file(&mut file).map_err(|_| FfmpegError::BundledBinaryInvalid)?;
+    let digest_matches = candidate_digest == expected_sha256;
+    if !digest_matches && !is_sealed_in_signed_bundle(&candidate) {
         return Err(FfmpegError::BundledBinaryIntegrityFailed);
     }
     file.seek(SeekFrom::Start(0))
@@ -172,11 +241,17 @@ pub fn verify_bundled_ffmpeg_for_spawn(
         staged_file
             .seek(SeekFrom::Start(0))
             .map_err(|_| FfmpegError::BundledBinaryInvalid)?;
-        if sha256_file(&mut staged_file).map_err(|_| FfmpegError::BundledBinaryInvalid)?
-            != expected_sha256
-        {
+        // The copy is what gets executed, so it is verified on its own terms
+        // rather than trusted because the original passed. A signature travels
+        // with the bytes, so the same proof is available here.
+        let staged_digest =
+            sha256_file(&mut staged_file).map_err(|_| FfmpegError::BundledBinaryInvalid)?;
+        if staged_digest != candidate_digest {
             return Err(FfmpegError::BundledBinaryIntegrityFailed);
         }
+        // The staged copy is outside the bundle, so it cannot carry the seal.
+        // Its proof is the digest equality checked immediately above: it is
+        // byte-for-byte the file the bundle signature already vouched for.
         staged_file
             .seek(SeekFrom::Start(0))
             .map_err(|_| FfmpegError::BundledBinaryInvalid)?;
@@ -259,6 +334,34 @@ mod tests {
 
     fn digest(bytes: &[u8]) -> String {
         format!("{:x}", Sha256::digest(bytes))
+    }
+
+    /// The reason this file changed: bundling re-signs sidecars, so a packaged
+    /// build's ffmpeg can never match the upstream digest.
+    #[test]
+    fn a_binary_matching_neither_proof_is_refused() {
+        let (_directory, executable) = fixture();
+        let ffmpeg = executable.with_file_name(EXECUTABLE_NAME);
+        write_executable(&ffmpeg, b"tampered-ffmpeg");
+
+        // An unsigned fixture cannot present a trusted signature, so the only
+        // remaining proof is the digest — and it does not match.
+        let outcome = verify_bundled_ffmpeg_for_spawn(&executable, &digest(b"approved-ffmpeg"));
+        assert_eq!(
+            outcome.err(),
+            Some(FfmpegError::BundledBinaryIntegrityFailed)
+        );
+    }
+
+    #[test]
+    fn a_file_outside_a_bundle_is_never_treated_as_sealed() {
+        let (_directory, executable) = fixture();
+        let ffmpeg = executable.with_file_name(EXECUTABLE_NAME);
+        write_executable(&ffmpeg, b"plain-bytes");
+
+        // Guards the escape hatch itself: a file outside any .app must never
+        // be treated as sealed, or the digest pin would stop meaning anything.
+        assert!(!is_sealed_in_signed_bundle(&ffmpeg));
     }
 
     #[test]
