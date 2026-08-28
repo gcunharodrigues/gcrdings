@@ -33,3 +33,13 @@
   local.
 - A change to audience, channel, platform, artifact, update mechanism, privilege, or sensitive data requires
   an amended `.external-assurance.json` and a new gate.
+
+## Decision history (OKF)
+
+Durable decisions live in `decisions/` per the Open Knowledge Format (OKF) v0.2: `log.md` (ledger),
+`NNNN-slug.md` (ADRs, `type: ADR` + `generated: {by: human:<name>, at: <ISO-8601 datetime with offset>}`), `index.md` (generated
+router, declaring `okf_version`). See `decisions/README.md`. `okf verify decisions/` and the pre-commit
+hook gate conformance.
+
+Keep lifecycle states separate: Current material governs now; Aspirational material is proposed;
+Historical material is retained evidence; Retired material is absent from active navigation.
