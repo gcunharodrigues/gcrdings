@@ -1,15 +1,24 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
 import type { Transcript } from "@/types";
 import { useSidebar } from "@/components/Sidebar/SidebarProvider";
 import { TranscriptPanel } from "@/components/MeetingDetails/TranscriptPanel";
 import { SummaryPanel } from "@/components/MeetingDetails/SummaryPanel";
 import { ParticipantsPanel } from "@/components/MeetingDetails/ParticipantsPanel";
-import { EvidenceStatusPanel } from "@/components/MeetingDetails/EvidenceStatusPanel";
 import { AgentHandoffMenu } from "@/components/MeetingDetails/AgentHandoffMenu";
 import { ExternalTransferDialog } from "@/components/MeetingDetails/ExternalTransferDialog";
+import { SessionHeader } from "@/components/MeetingDetails/SessionHeader";
+import { MarkersPanel } from "@/components/MeetingDetails/MarkersPanel";
+import { ClipsPanel } from "@/components/MeetingDetails/ClipsPanel";
+import { ScreenRecordingsPanel } from "@/components/MeetingDetails/ScreenRecordingsPanel";
+import { SessionOrganisation } from "@/components/MeetingDetails/SessionOrganisation";
+import { ConfirmationModal } from "@/components/ConfirmationModel/confirmation-modal";
+import { RecordModeSelector } from "@/components/MeetingDetails/RecordModeSelector";
+import { readDefaultRecordMode, readSessionRecordMode, writeDefaultRecordMode, writeSessionRecordMode } from "@/lib/record-mode-preferences";
+import type { RecordMode } from "@/types/record-modes";
 import { useMeetingOperations } from "@/hooks/meeting-details/useMeetingOperations";
 import { useReviewRecord } from "@/hooks/meeting-details/useReviewRecord";
 import { useVerifiableRecord } from "@/hooks/meeting-details/useVerifiableRecord";
@@ -43,9 +52,39 @@ export default function PageContent({ meeting, onRefetchTranscripts, hasMore, is
     });
   }, [meeting.transcripts, reviewRecord.state?.meetingId]);
 
+  // The dialog resolves the promise the caller is awaiting, so the operation
+  // still blocks on a real answer instead of the OS confirm sheet.
+  const [discardPrompt, setDiscardPrompt] = useState(false);
+  const discardResolver = useRef<((confirmed: boolean) => void) | null>(null);
+
+  const answerDiscardPrompt = (confirmed: boolean) => {
+    setDiscardPrompt(false);
+    discardResolver.current?.(confirmed);
+    discardResolver.current = null;
+  };
+
+  // The reader's default applies until this Session is given its own mode.
+  const [mode, setMode] = useState<RecordMode>(() => readSessionRecordMode(meeting.id));
+  const [defaultMode, setDefaultMode] = useState<RecordMode>(readDefaultRecordMode);
+
+  const applyMode = (next: RecordMode) => {
+    setMode(next);
+    writeSessionRecordMode(meeting.id, next);
+    if (next.recordType !== mode.recordType) void findings.selectType(next.recordType);
+  };
+
+  const makeModeDefault = () => {
+    writeDefaultRecordMode(mode);
+    setDefaultMode(mode);
+  };
+
   const confirmDestructiveOperation = async () => {
     if (!reviewRecord.state?.dirty) return true;
-    if (!window.confirm("Discard unsaved transcript corrections and continue?")) return false;
+    const confirmed = await new Promise<boolean>((resolve) => {
+      discardResolver.current = resolve;
+      setDiscardPrompt(true);
+    });
+    if (!confirmed) return false;
     await reviewRecord.reload();
     return true;
   };
@@ -57,23 +96,72 @@ export default function PageContent({ meeting, onRefetchTranscripts, hasMore, is
   };
   const seek = (timestampMs: number) => { void audioPlayer.seekAndPlay(timestampMs / 1000); };
 
+  // Only trustworthy once every passage is loaded, otherwise it would report
+  // the duration of the loaded page instead of the Session.
+  const sessionDurationMs = hasMore
+    ? undefined
+    : meeting.transcripts.reduce((longest: number, transcript: Transcript) => Math.max(longest, (transcript.audio_end_time ?? 0) * 1000), 0) || undefined;
+
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }} className="flex h-screen flex-col bg-gray-50">
-      <header className="flex min-h-12 items-center justify-end gap-2 border-b border-gray-200 bg-white px-4">
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }} className="flex h-screen flex-col bg-background">
+      <ConfirmationModal
+        isOpen={discardPrompt}
+        title="Discard transcript corrections?"
+        text="This operation replaces the current draft. Unsaved transcript corrections are discarded."
+        confirmLabel="Discard and continue"
+        cancelLabel="Cancel"
+        onConfirm={() => answerDiscardPrompt(true)}
+        onCancel={() => answerDiscardPrompt(false)}
+      />
+      <header className="flex min-h-12 items-center gap-4 border-b border-border bg-card px-4 py-2">
+        <SessionHeader
+          title={meeting.title}
+          createdAt={meeting.created_at}
+          passageCount={totalCount ?? meeting.transcripts.length}
+          durationMs={sessionDurationMs}
+        />
+        <SessionOrganisation meetingId={meeting.id} />
+        <RecordModeSelector
+          mode={mode}
+          onChange={applyMode}
+          onSaveAsDefault={makeModeDefault}
+          isDefault={mode.recordType === defaultMode.recordType && mode.voice === defaultMode.voice && mode.shape === defaultMode.shape}
+          hasParticipants={(findings.record?.participants.length ?? 0) > 0}
+          hasTimestamps={Boolean(findings.record?.transcript.some((passage) => passage.start_ms > 0))}
+          disabled={findings.record?.generation_status === "processing"}
+        />
         <ExternalTransferDialog meetingId={meeting.id} disabled={Boolean(reviewRecord.state?.dirty)} />
-        <AgentHandoffMenu meetingId={meeting.id} disabled={Boolean(reviewRecord.state?.dirty)} />
+        <AgentHandoffMenu
+          meetingId={meeting.id}
+          hasUnsavedTranscript={Boolean(reviewRecord.state?.dirty)}
+          onSaveTranscript={savePrincipal}
+        />
       </header>
-      <main className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto xl:grid-cols-[minmax(16rem,0.8fr)_minmax(28rem,1.8fr)_minmax(14rem,0.7fr)] xl:overflow-hidden">
-        <section aria-label="Session findings" data-review-column="context" className="flex min-h-0 flex-col overflow-hidden bg-white">
-          <SummaryPanel record={findings.record} loadError={findings.error} hasUnsavedTranscript={Boolean(reviewRecord.state?.dirty)} onSelectType={(type) => void findings.selectType(type)} onGenerate={() => void findings.generate()} onCancel={() => void findings.cancel()} onSeek={seek} />
-          {reviewRecord.state && <ParticipantsPanel state={reviewRecord.state} dispatch={reviewRecord.dispatch} />}
+      <main className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(18rem,1fr)_minmax(28rem,2fr)] lg:overflow-hidden">
+        <section aria-label="Session findings" data-review-column="context" className="flex min-h-0 flex-col overflow-hidden bg-card">
+          <Tabs defaultValue="findings" className="flex min-h-0 flex-1 flex-col">
+            <TabsList className="mx-4 mt-3 self-start">
+              <TabsTrigger value="findings">Findings</TabsTrigger>
+              <TabsTrigger value="clips">Clips</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="findings" className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <SummaryPanel record={findings.record} loadError={findings.error} hasUnsavedTranscript={Boolean(reviewRecord.state?.dirty)} mode={mode} onGenerate={() => void findings.generate()} onCancel={() => void findings.cancel()} onSeek={seek} />
+              <ScreenRecordingsPanel meetingId={meeting.id} />
+              <MarkersPanel meetingId={meeting.id} onSeek={seek} />
+              {reviewRecord.state && <ParticipantsPanel state={reviewRecord.state} dispatch={reviewRecord.dispatch} />}
+            </TabsContent>
+
+            <TabsContent value="clips" className="min-h-0 flex-1 overflow-y-auto">
+              <ClipsPanel meetingId={meeting.id} />
+            </TabsContent>
+          </Tabs>
         </section>
         {reviewRecord.state ? (
           <TranscriptPanel state={reviewRecord.state} sourceTranscripts={meeting.transcripts} dispatch={reviewRecord.dispatch} save={savePrincipal} reload={reviewRecord.reload} audioPlayer={audioPlayer} hasMore={hasMore} isLoadingMore={isLoadingMore} totalCount={totalCount} loadedCount={loadedCount} onLoadMore={onLoadMore} meetingId={meeting.id} meetingFolderPath={meeting.folder_path} onRefetchTranscripts={onRefetchTranscripts} confirmDestructiveOperation={confirmDestructiveOperation} onOpenMeetingFolder={meetingOperations.handleOpenMeetingFolder} />
         ) : (
-          <section aria-live="polite" data-review-column="transcript" className="flex items-center justify-center border-x border-gray-200 bg-white p-8 text-center"><div><p className="text-sm text-gray-700">{reviewRecord.loadError ?? "Loading principal transcript…"}</p>{reviewRecord.loadError && <button type="button" onClick={() => void reviewRecord.reload()} className="mt-3 rounded bg-blue-700 px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2">Retry</button>}</div></section>
+          <section aria-live="polite" data-review-column="transcript" className="flex items-center justify-center border-x border-border bg-card p-8 text-center"><div><p className="text-sm text-foreground/90">{reviewRecord.loadError ?? "Loading principal transcript…"}</p>{reviewRecord.loadError && <button type="button" onClick={() => void reviewRecord.reload()} className="mt-3 rounded bg-blue-700 px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2">Retry</button>}</div></section>
         )}
-        <EvidenceStatusPanel record={findings.record} onSeek={seek} />
       </main>
     </motion.div>
   );

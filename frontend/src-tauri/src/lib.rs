@@ -36,20 +36,25 @@ pub mod analytics;
 pub mod anthropic;
 pub mod api;
 pub mod audio;
+pub mod clips;
 pub mod config;
 pub mod console_utils;
 pub mod database;
+pub mod global_shortcut;
 pub mod groq;
+pub mod markers;
 pub mod notifications;
 pub mod ollama;
 pub mod onboarding;
 pub mod openai;
 pub mod openrouter;
+pub mod organisation;
 pub mod parakeet_engine;
 pub mod providers;
 
 #[used]
 static BUILD_COMMIT_MARKER: &str = concat!("gcrdings-build-commit:", env!("GCRDINGS_BUILD_COMMIT"));
+pub mod screen_capture;
 pub mod state;
 pub mod summary;
 pub mod tray;
@@ -391,6 +396,13 @@ pub fn run() {
     }
 
     builder
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(|app, shortcut, event| {
+                    global_shortcut::handle_event(app, shortcut, event.state());
+                })
+                .build(),
+        )
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_dialog::init())
@@ -406,6 +418,8 @@ pub fn run() {
             if let Err(e) = tray::create_tray(_app.handle()) {
                 log::error!("Failed to create system tray: {}", e);
             }
+
+            global_shortcut::register(_app.handle());
 
             // Initialize notification system with proper defaults
             log::info!("Initializing notification system...");
@@ -678,6 +692,38 @@ pub fn run() {
             providers::commands::api_preview_provider_transfer,
             providers::commands::api_confirm_provider_transfer,
             verifiable_record::commands::api_get_verifiable_record,
+            screen_capture::commands::api_list_capture_targets,
+            screen_capture::commands::api_capture_target_thumbnail,
+            screen_capture::commands::api_get_session_screen_recordings,
+            screen_capture::commands::api_reveal_screen_recording,
+            screen_capture::commands::api_start_screen_recording,
+            screen_capture::commands::api_stop_screen_recording,
+            screen_capture::commands::api_get_screen_recording_state,
+            clips::commands::api_list_clips,
+            clips::commands::api_create_clip,
+            clips::commands::api_rename_clip,
+            clips::commands::api_delete_clip,
+            clips::commands::api_reveal_clip,
+            organisation::commands::api_list_folders,
+            organisation::commands::api_create_folder,
+            organisation::commands::api_rename_folder,
+            organisation::commands::api_move_folder,
+            organisation::commands::api_delete_folder,
+            organisation::commands::api_set_session_folder,
+            organisation::commands::api_list_tags,
+            organisation::commands::api_create_tag,
+            organisation::commands::api_rename_tag,
+            organisation::commands::api_delete_tag,
+            organisation::commands::api_get_session_tags,
+            organisation::commands::api_attach_tag,
+            organisation::commands::api_detach_tag,
+            markers::commands::api_add_pending_marker,
+            markers::commands::api_get_pending_markers,
+            markers::commands::api_clear_pending_markers,
+            markers::commands::api_get_session_markers,
+            markers::commands::api_add_session_marker,
+            markers::commands::api_update_session_marker,
+            markers::commands::api_delete_session_marker,
             verifiable_record::commands::api_generate_verifiable_record,
             verifiable_record::commands::api_cancel_verifiable_record,
             verifiable_record::commands::api_set_record_type,
@@ -771,6 +817,11 @@ pub fn run() {
             audio::import::select_and_validate_audio_command,
             audio::import::validate_audio_file_command,
             audio::import::start_import_audio_command,
+            audio::import_queue::api_enqueue_imports,
+            audio::import_queue::api_get_import_queue,
+            audio::import_queue::api_remove_queued_import,
+            audio::batch_import::api_select_import_folder,
+            audio::batch_import::api_start_batch_import,
             audio::import::cancel_import_command,
             audio::import::is_import_in_progress_command,
         ])

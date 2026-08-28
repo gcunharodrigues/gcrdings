@@ -31,10 +31,10 @@ static IMPORT_CANCELLED: AtomicBool = AtomicBool::new(false);
 const MAX_FILE_SIZE_BYTES: u64 = 20 * 1024 * 1024 * 1024;
 const EXTRACTION_TIMEOUT: Duration = Duration::from_secs(2 * 60 * 60);
 
-struct ImportGuard;
+pub(crate) struct ImportGuard;
 
 impl ImportGuard {
-    fn acquire() -> Result<Self, String> {
+    pub(crate) fn acquire() -> Result<Self, String> {
         IMPORT_IN_PROGRESS
             .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
             .map(|_| Self)
@@ -377,14 +377,13 @@ fn copy_original(source: &Path, destination: &Path) -> Result<()> {
         .map_err(|_| anyhow!("The original media copy could not be finalized"))
 }
 
-async fn start_import<R: Runtime>(
+pub(crate) async fn start_import<R: Runtime>(
     app: AppHandle<R>,
     source_path: String,
     title: String,
     language: Option<String>,
     model: Option<String>,
     provider: Option<String>,
-    _guard: ImportGuard,
 ) -> Result<ImportResult> {
     let mut imported = match run_import(app.clone(), PathBuf::from(source_path), title).await {
         Ok(imported) => imported,
@@ -620,8 +619,10 @@ pub async fn start_import_audio_command<R: Runtime>(
     let guard = ImportGuard::acquire()?;
     IMPORT_CANCELLED.store(false, Ordering::SeqCst);
     tauri::async_runtime::spawn(async move {
+        // Held for the whole import; dropping it releases the single-import lock.
+        let _guard = guard;
         if let Err(import_error) =
-            start_import(app, source_path, title, language, model, provider, guard).await
+            start_import(app, source_path, title, language, model, provider).await
         {
             error!("Media import failed: {import_error}");
         }
