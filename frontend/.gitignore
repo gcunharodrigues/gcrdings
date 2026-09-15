@@ -52,3 +52,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# editor/script backups
+*.bak
+
+# dev-only IPC shim used for browser verification
+src/lib/__dev_mock.ts

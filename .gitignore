@@ -80,3 +80,6 @@ Models/Downloads/
 Tests/Fixtures/Private/
 *.tmp
 .scratch/
+
+# local tooling
+.claude/

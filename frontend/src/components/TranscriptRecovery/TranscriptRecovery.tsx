@@ -21,6 +21,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { MeetingMetadata, StoredTranscript } from '@/services/indexedDBService';
 import { cn } from '@/lib/utils';
+import { log } from '@/lib/logger';
 
 interface TranscriptRecoveryProps {
   isOpen: boolean;
@@ -82,7 +83,7 @@ export function TranscriptRecovery({
     setIsRecovering(true);
     try {
       const result = await onRecover(selectedMeetingId);
-      console.log('Recovery successful:', result);
+      log.debug('Recovery successful:', result);
       onClose();
     } catch (error) {
       console.error('Recovery failed:', error);

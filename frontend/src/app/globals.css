@@ -106,24 +106,26 @@
   }
 
   .dark {
-    --background: 0 0% 3.9%;
+    --background: 220 8% 7%;
     --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
+    /* Cards must sit above the page. Sharing the background colour, as these
+       tokens originally did, made every panel edge disappear in dark mode. */
+    --card: 220 8% 11%;
     --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
+    --popover: 220 8% 11%;
     --popover-foreground: 0 0% 98%;
     --primary: 0 0% 98%;
     --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
+    --secondary: 220 7% 16%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
+    --muted: 220 7% 16%;
+    --muted-foreground: 220 6% 66%;
+    --accent: 220 7% 18%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
+    --border: 220 7% 20%;
+    --input: 220 7% 20%;
     --ring: 0 0% 83.1%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;

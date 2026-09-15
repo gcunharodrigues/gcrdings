@@ -21,6 +21,9 @@ import {
 
 interface AgentHandoffMenuProps {
   meetingId: string;
+  /** Unsaved corrections. Handled by saving first, not by refusing. */
+  hasUnsavedTranscript?: boolean;
+  onSaveTranscript?: () => Promise<boolean>;
   disabled?: boolean;
 }
 
@@ -53,7 +56,12 @@ function failureMessage(error: unknown): string {
   return "Agent Handoff failed. No Session content changed.";
 }
 
-export function AgentHandoffMenu({ meetingId, disabled = false }: AgentHandoffMenuProps) {
+export function AgentHandoffMenu({
+  meetingId,
+  hasUnsavedTranscript = false,
+  onSaveTranscript,
+  disabled = false,
+}: AgentHandoffMenuProps) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState<PendingAgentHandoff | null>(null);
   const [busy, setBusy] = useState(false);
@@ -63,6 +71,15 @@ export function AgentHandoffMenu({ meetingId, disabled = false }: AgentHandoffMe
     setBusy(true);
     setStatus("");
     try {
+      // Export must reflect the principal transcript, so save first rather than
+      // disabling the button and making the reader go find the Save control.
+      if (hasUnsavedTranscript && onSaveTranscript) {
+        setStatus("Saving transcript corrections…");
+        if (!await onSaveTranscript()) {
+          setStatus("Transcript corrections could not be saved. Nothing was exported.");
+          return;
+        }
+      }
       const outcome = await invoke<AgentHandoffOutcome>("api_export_agent_handoff", agentHandoffRequest(meetingId, format, action));
       setStatus(LABELS[outcome]);
     } catch (error) {
@@ -70,7 +87,7 @@ export function AgentHandoffMenu({ meetingId, disabled = false }: AgentHandoffMe
     } finally {
       setBusy(false);
     }
-  }, [meetingId]);
+  }, [hasUnsavedTranscript, meetingId, onSaveTranscript]);
 
   useEffect(() => {
     const remaining = consumePendingAgentHandoff(open, pending, ({ format, action }) => {
@@ -94,6 +111,11 @@ export function AgentHandoffMenu({ meetingId, disabled = false }: AgentHandoffMe
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          {hasUnsavedTranscript && (
+            <p className="px-2 py-1.5 text-xs text-amber-800">
+              Transcript corrections are saved first, so the export matches the principal record.
+            </p>
+          )}
           <DropdownMenuLabel>Save for an agent</DropdownMenuLabel>
           <DropdownMenuItem onSelect={() => select("markdown", "save")}><Download className="mr-2 h-4 w-4" />Save Markdown</DropdownMenuItem>
           <DropdownMenuItem onSelect={() => select("json", "save")}><Download className="mr-2 h-4 w-4" />Save JSON</DropdownMenuItem>
@@ -103,7 +125,7 @@ export function AgentHandoffMenu({ meetingId, disabled = false }: AgentHandoffMe
           <DropdownMenuItem onSelect={() => select("json", "share")}><Share2 className="mr-2 h-4 w-4" />Share JSON</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <p aria-live="polite" className="text-xs text-gray-600">{disabled ? "Save transcript corrections before Agent Handoff." : status}</p>
+      <p aria-live="polite" className="text-xs text-gray-600">{status}</p>
     </div>
   );
 }

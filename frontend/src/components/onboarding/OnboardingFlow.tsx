@@ -5,6 +5,7 @@ import {
   PermissionsStep,
   DownloadProgressStep,
   SetupOverviewStep,
+  ReadingPreferencesStep,
 } from './steps';
 
 interface OnboardingFlowProps {
@@ -12,7 +13,7 @@ interface OnboardingFlowProps {
 }
 
 export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
-  const { currentStep } = useOnboarding();
+  const { currentStep, goNext } = useOnboarding();
   const [isMac, setIsMac] = React.useState(false);
 
   useEffect(() => {
@@ -31,11 +32,18 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     checkPlatform();
   }, []);
 
-  // 4-Step Onboarding Flow (System-Recommended Models):
+  // Step 4 asks for macOS capture permissions, which do not exist elsewhere.
+  // Without this the step rendered nothing and setup dead-ended off macOS.
+  useEffect(() => {
+    if (currentStep === 4 && !isMac) goNext();
+  }, [currentStep, isMac, goNext]);
+
+  // 5-Step Onboarding Flow (System-Recommended Models):
   // Step 1: Welcome - Introduce gcrdings features
   // Step 2: Setup Overview - Database initialization + show recommended downloads
   // Step 3: Download Progress - Download Parakeet + Summary Model (auto-selected based on platform/RAM)
   // Step 4: Permissions - Request mic + system audio (macOS only)
+  // Step 5: Reading preferences - default record type, voice and layout
 
   return (
     <div className="onboarding-flow">
@@ -43,6 +51,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       {currentStep === 2 && <SetupOverviewStep />}
       {currentStep === 3 && <DownloadProgressStep />}
       {currentStep === 4 && isMac && <PermissionsStep />}
+      {currentStep === 5 && <ReadingPreferencesStep />}
     </div>
   );
 }

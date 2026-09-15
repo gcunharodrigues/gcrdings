@@ -3,6 +3,7 @@ import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { log } from '@/lib/logger';
 import {
   ParakeetModelInfo,
   ModelStatus,
@@ -78,7 +79,7 @@ export function ParakeetModelManager({
     let unlistenError: (() => void) | null = null;
 
     const setupListeners = async () => {
-      console.log('[ParakeetModelManager] Setting up event listeners...');
+      log.debug('[ParakeetModelManager] Setting up event listeners...');
 
       // Download progress with throttling
       unlistenProgress = await listen<{ modelName: string; progress: number }>(
@@ -94,7 +95,7 @@ export function ParakeetModelManager({
             Math.abs(progress - throttleData.progress) >= 5;
 
           if (shouldUpdate) {
-            console.log(`[ParakeetModelManager] Progress update for ${modelName}: ${progress}%`);
+            log.debug(`[ParakeetModelManager] Progress update for ${modelName}: ${progress}%`);
             progressThrottleRef.current.set(modelName, { progress, timestamp: now });
 
             setModels(prevModels =>
@@ -188,7 +189,7 @@ export function ParakeetModelManager({
     setupListeners();
 
     return () => {
-      console.log('[ParakeetModelManager] Cleaning up event listeners...');
+      log.debug('[ParakeetModelManager] Cleaning up event listeners...');
       if (unlistenProgress) unlistenProgress();
       if (unlistenComplete) unlistenComplete();
       if (unlistenError) unlistenError();
