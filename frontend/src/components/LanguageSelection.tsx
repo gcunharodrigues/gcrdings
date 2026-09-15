@@ -3,6 +3,7 @@ import { Globe } from 'lucide-react';
 import Analytics from '@/lib/analytics';
 import { toast } from 'sonner';
 import { useConfig } from '@/contexts/ConfigContext';
+import { log } from '@/lib/logger';
 
 export interface Language {
   code: string;
@@ -142,7 +143,7 @@ export function LanguageSelection({
       // Save language preference to localStorage and sync to backend
       setSelectedLanguage(languageCode);
       onLanguageChange(languageCode);
-      console.log('Language preference saved:', languageCode);
+      log.debug('Language preference saved:', languageCode);
 
       // Track language selection analytics
       const selectedLang = LANGUAGES.find(lang => lang.code === languageCode);

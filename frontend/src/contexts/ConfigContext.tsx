@@ -7,6 +7,7 @@ import { configService, ModelConfig } from '@/services/configService';
 import { invoke } from '@tauri-apps/api/core';
 import Analytics from '@/lib/analytics';
 import { BetaFeatures, BetaFeatureKey, loadBetaFeatures, saveBetaFeatures } from '@/types/betaFeatures';
+import { log } from '@/lib/logger';
 
 export interface OllamaModel {
   name: string;
@@ -197,7 +198,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       try {
         const config = await configService.getTranscriptConfig();
         if (config) {
-          console.log('[ConfigContext] Loaded saved transcript config:', config);
+          log.debug('[ConfigContext] Loaded saved transcript config:', config);
           setTranscriptModelConfig({
             provider: config.provider || 'parakeet',
             model: config.model || 'parakeet-tdt-0.6b-v3-int8',
@@ -216,7 +217,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     if (selectedLanguage) {
       invoke('set_language_preference', { language: selectedLanguage })
         .then(() => {
-          console.log('[ConfigContext] Synced language preference to Rust on startup:', selectedLanguage);
+          log.debug('[ConfigContext] Synced language preference to Rust on startup:', selectedLanguage);
         })
         .catch(err => {
           console.error('[ConfigContext] Failed to sync language preference to Rust on startup:', err);
@@ -236,7 +237,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
               const customConfig = await configService.getCustomOpenAIConfig();
               if (customConfig) {
                 // Merge custom config fields into modelConfig
-                console.log('[ConfigContext] Loading custom OpenAI config:', {
+                log.debug('[ConfigContext] Loading custom OpenAI config:', {
                   endpoint: customConfig.endpoint,
                   model: customConfig.model,
                 });
@@ -295,7 +296,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     const setupListener = async () => {
       const { listen } = await import('@tauri-apps/api/event');
       const unlisten = await listen<ModelConfig>('model-config-updated', (event) => {
-        console.log('[ConfigContext] Received model-config-updated event:', event.payload);
+        log.debug('[ConfigContext] Received model-config-updated event:', event.payload);
         setModelConfig(event.payload);
 
         // Update provider-specific key when config changes
@@ -324,10 +325,10 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
             micDevice: prefs.preferred_mic_device,
             systemDevice: prefs.preferred_system_device
           });
-          console.log('Loaded device preferences:', prefs);
+          log.debug('Loaded device preferences:', prefs);
         }
       } catch (error) {
-        console.log('No device preferences found or failed to load:', error);
+        log.debug('No device preferences found or failed to load:', error);
       }
     };
     loadDevicePreferences();

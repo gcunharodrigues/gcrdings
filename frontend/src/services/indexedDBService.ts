@@ -1,3 +1,4 @@
+import { log } from '@/lib/logger';
 /**
  * IndexedDB Service for Transcript Recovery
  * Provides browser-based persistence for meeting transcripts and metadata
@@ -360,7 +361,7 @@ class IndexedDBService {
         }
       }
 
-      console.log(`Cleaned up ${deletedCount} old meetings`);
+      log.debug(`Cleaned up ${deletedCount} old meetings`);
       return deletedCount;
     } catch (error) {
       console.error('Failed to delete old meetings:', error);
@@ -410,7 +411,7 @@ class IndexedDBService {
         }
       }
 
-      console.log(`Cleaned up ${deletedCount} saved meetings`);
+      log.debug(`Cleaned up ${deletedCount} saved meetings`);
       return deletedCount;
     } catch (error) {
       console.error('Failed to delete saved meetings:', error);

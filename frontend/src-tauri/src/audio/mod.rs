@@ -1,5 +1,6 @@
 // src/audio/mod.rs
 pub mod audio_processing;
+pub mod batch_import;
 pub mod decoder;
 pub mod diarization;
 pub mod diarization_models;

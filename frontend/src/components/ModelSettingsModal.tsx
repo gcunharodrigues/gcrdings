@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/command';
 import { cn, isOllamaNotInstalledError } from '@/lib/utils';
 import { toast } from 'sonner';
+import { log } from '@/lib/logger';
 
 export interface ModelConfig {
   provider: 'ollama' | 'groq' | 'claude' | 'openai' | 'openrouter' | 'builtin-ai' | 'custom-openai';
@@ -319,7 +320,7 @@ export function ModelSettingsModal({
       try {
         const enabled = (await invoke('api_get_auto_generate_setting')) as boolean;
         setAutoGenerateEnabled(enabled);
-        console.log('Auto-generate setting loaded:', enabled);
+        log.debug('Auto-generate setting loaded:', enabled);
       } catch (err) {
         console.error('Failed to fetch auto-generate setting:', err);
         // Keep default value (true) on error
@@ -345,7 +346,7 @@ export function ModelSettingsModal({
   // Sync custom OpenAI state from modelConfig (context or props)
   useEffect(() => {
     if (modelConfig.provider === 'custom-openai') {
-      console.log('Syncing custom OpenAI fields from ConfigContext:', {
+      log.debug('Syncing custom OpenAI fields from ConfigContext:', {
         endpoint: modelConfig.customOpenAIEndpoint,
         model: modelConfig.customOpenAIModel,
         hasApiKey: !!modelConfig.customOpenAIApiKey,
@@ -626,7 +627,7 @@ export function ModelSettingsModal({
           temperature: customTemperature ? parseFloat(customTemperature) : null,
           topP: customTopP ? parseFloat(customTopP) : null,
         });
-        console.log('Custom OpenAI config saved successfully');
+        log.debug('Custom OpenAI config saved successfully');
       } catch (err) {
         console.error('Failed to save custom OpenAI config:', err);
         toast.error('Failed to save custom OpenAI configuration');
@@ -651,7 +652,7 @@ export function ModelSettingsModal({
       model: modelConfig.provider === 'custom-openai' ? customOpenAIModel.trim() : modelConfig.model,
     };
     setModelConfig(updatedConfig);
-    console.log('ModelSettingsModal - handleSave - Updated ModelConfig:', updatedConfig);
+    log.debug('ModelSettingsModal - handleSave - Updated ModelConfig:', updatedConfig);
 
     // Persist confirmed model choice to per-provider cache
     if (updatedConfig.model) {
@@ -776,7 +777,7 @@ export function ModelSettingsModal({
     for (const modelName of previous) {
       if (!current.has(modelName)) {
         // Download completed, refresh models list
-        console.log(`[ModelSettingsModal] Download completed for ${modelName}, refreshing list`);
+        log.debug(`[ModelSettingsModal] Download completed for ${modelName}, refreshing list`);
         fetchOllamaModels(true);
         break; // Only refresh once even if multiple completed
       }
