@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { getVersion } from '@tauri-apps/api/app';
-import Image from 'next/image';
 import AnalyticsConsentSwitch from "./AnalyticsConsentSwitch";
+import { BrandMark } from "./BrandMark";
 
 
 export function About() {
@@ -17,13 +17,7 @@ export function About() {
             {/* Compact Header */}
             <div className="text-center">
                 <div className="mb-3">
-                    <Image
-                        src="icon_128x128.png"
-                        alt="gcrdings Logo"
-                        width={64}
-                        height={64}
-                        className="mx-auto"
-                    />
+                    <BrandMark size={64} className="mx-auto" />
                 </div>
                 {/* <h1 className="text-xl font-bold text-gray-900">gcrdings</h1> */}
                 <span className="text-sm text-gray-500"> v{currentVersion}</span>

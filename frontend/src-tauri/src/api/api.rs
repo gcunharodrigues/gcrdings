@@ -1143,10 +1143,25 @@ pub async fn api_save_transcript<R: Runtime>(
                 "Successfully saved transcript and created meeting with id: {}",
                 meeting_id
             );
+
+            // Markers dropped while recording had no Session to belong to yet.
+            // A failure here is deliberately swallowed: losing a marker is an
+            // annoyance, failing the save would lose the transcript.
+            let markers_saved =
+                crate::markers::commands::flush_pending_markers(pool, &meeting_id).await;
+            if markers_saved > 0 {
+                log_info!(
+                    "Attached {} recording marker(s) to {}",
+                    markers_saved,
+                    meeting_id
+                );
+            }
+
             Ok(serde_json::json!({
                 "status": "success",
                 "message": "Transcript saved successfully",
-                "meeting_id": meeting_id
+                "meeting_id": meeting_id,
+                "markers_saved": markers_saved
             }))
         }
         Err(e) => {

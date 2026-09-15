@@ -160,6 +160,21 @@ export function useReviewRecord(meetingId: string | null): UseReviewRecordResult
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [save]);
 
+  // Autosave. Corrections were only ever persisted by an explicit ⌘S or button
+  // press, so a crash, a quit or a forgotten tab lost them — and a dirty draft
+  // also blocked Agent Handoff, which made the omission compound.
+  const AUTOSAVE_DELAY_MS = 2500;
+
+  useEffect(() => {
+    if (!activeState?.dirty || activeState.saveStatus.type === "saving") return;
+    // A failed save must not be retried on a timer: it would hammer a backend
+    // that already refused, and bury the error the user needs to read.
+    if (activeState.saveStatus.type === "failed") return;
+
+    const timer = setTimeout(() => { void save(); }, AUTOSAVE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [activeState?.dirty, activeState?.present, activeState?.saveStatus.type, save]);
+
   useEffect(() => {
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
       if (!stateRef.current?.dirty) return;

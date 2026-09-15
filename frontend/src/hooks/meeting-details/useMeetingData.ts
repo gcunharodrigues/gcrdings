@@ -4,6 +4,7 @@ import { BlockNoteSummaryViewRef } from '@/components/AISummary/BlockNoteSummary
 import { CurrentMeeting, useSidebar } from '@/components/Sidebar/SidebarProvider';
 import { invoke as invokeTauri } from '@tauri-apps/api/core';
 import { toast } from 'sonner';
+import { log } from '@/lib/logger';
 
 interface UseMeetingDataProps {
   meeting: any;
@@ -31,7 +32,7 @@ export function useMeetingData({ meeting, summaryData, onMeetingUpdated }: UseMe
 
   // Sync aiSummary state when summaryData prop changes (fixes display of fetched summaries)
   useEffect(() => {
-    console.log('[useMeetingData] Syncing summary data from prop:', summaryData ? 'present' : 'null');
+    log.debug('[useMeetingData] Syncing summary data from prop:', summaryData ? 'present' : 'null');
     setAiSummary(summaryData);
   }, [summaryData]); // Only trigger when parent prop changes, not when aiSummary changes
 
@@ -52,7 +53,7 @@ export function useMeetingData({ meeting, summaryData, onMeetingUpdated }: UseMe
         title: meetingTitle,
       });
 
-      console.log('Save meeting title success');
+      log.debug('Save meeting title success');
       setIsTitleDirty(false);
 
       // Update meetings with new title
@@ -74,7 +75,7 @@ export function useMeetingData({ meeting, summaryData, onMeetingUpdated }: UseMe
   }, [meeting.id, meetingTitle, sidebarMeetings, setMeetings, setCurrentMeeting]);
 
   const handleSaveSummary = useCallback(async (summary: Summary | { markdown?: string; summary_json?: any[] }) => {
-    console.log('📄 handleSaveSummary called with:', {
+    log.debug('📄 handleSaveSummary called with:', {
       hasMarkdown: 'markdown' in summary,
       hasSummaryJson: 'summary_json' in summary,
       summaryKeys: Object.keys(summary)
@@ -85,10 +86,10 @@ export function useMeetingData({ meeting, summaryData, onMeetingUpdated }: UseMe
 
       // Check if it's the new BlockNote format
       if ('markdown' in summary || 'summary_json' in summary) {
-        console.log('📄 Saving new format (markdown/blocknote)');
+        log.debug('📄 Saving new format (markdown/blocknote)');
         formattedSummary = summary;
       } else {
-        console.log('📄 Saving legacy format');
+        log.debug('📄 Saving legacy format');
         formattedSummary = {
           MeetingName: meetingTitle,
           MeetingNotes: {
@@ -105,7 +106,7 @@ export function useMeetingData({ meeting, summaryData, onMeetingUpdated }: UseMe
         summary: formattedSummary,
       });
 
-      console.log('✅ Save meeting summary success');
+      log.debug('✅ Save meeting summary success');
     } catch (error) {
       console.error('❌ Failed to save meeting summary:', error);
       if (error instanceof Error) {
@@ -126,7 +127,7 @@ export function useMeetingData({ meeting, summaryData, onMeetingUpdated }: UseMe
 
       // Save BlockNote editor changes if dirty
       if (blockNoteSummaryRef.current?.isDirty) {
-        console.log('💾 Saving BlockNote editor changes...');
+        log.debug('💾 Saving BlockNote editor changes...');
         await blockNoteSummaryRef.current.saveSummary();
       } else if (aiSummary) {
         await handleSaveSummary(aiSummary);
@@ -143,7 +144,7 @@ export function useMeetingData({ meeting, summaryData, onMeetingUpdated }: UseMe
 
   // Update meeting title from external source (e.g., AI summary)
   const updateMeetingTitle = useCallback((newTitle: string) => {
-    console.log('📝 Updating meeting title to:', newTitle);
+    log.debug('📝 Updating meeting title to:', newTitle);
     setMeetingTitle(newTitle);
     const updatedMeetings = sidebarMeetings.map((m: CurrentMeeting) =>
       m.id === meeting.id ? { id: m.id, title: newTitle } : m

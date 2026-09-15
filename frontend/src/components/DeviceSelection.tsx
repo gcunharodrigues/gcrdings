@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import Analytics from '@/lib/analytics';
 import { DISABLED_AUDIO_SOURCE } from '@/services/recordingService';
+import { log } from '@/lib/logger';
 
 export interface AudioDevice {
   name: string;
@@ -57,7 +58,7 @@ export function DeviceSelection({ selectedDevices, onDeviceChange, disabled = fa
       setError(null);
       const result = await invoke<AudioDevice[]>('get_audio_devices');
       setDevices(result);
-      console.log('Fetched audio devices:', result);
+      log.debug('Fetched audio devices:', result);
     } catch (err) {
       console.error('Failed to fetch audio devices:', err);
       setError('Failed to load audio devices. Please check your system audio settings.');
@@ -184,7 +185,7 @@ export function DeviceSelection({ selectedDevices, onDeviceChange, disabled = fa
       await invoke('start_audio_level_monitoring', { deviceNames });
       setIsMonitoring(true);
       setShowLevels(true);
-      console.log('Started audio level monitoring for input devices:', deviceNames);
+      log.debug('Started audio level monitoring for input devices:', deviceNames);
     } catch (err) {
       console.error('Failed to start audio level monitoring:', err);
       setError('Failed to start audio level monitoring');
@@ -197,7 +198,7 @@ export function DeviceSelection({ selectedDevices, onDeviceChange, disabled = fa
       await invoke('stop_audio_level_monitoring');
       setIsMonitoring(false);
       setAudioLevels(new Map());
-      console.log('Stopped audio level monitoring');
+      log.debug('Stopped audio level monitoring');
     } catch (err) {
       console.error('Failed to stop audio level monitoring:', err);
     }

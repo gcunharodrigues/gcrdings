@@ -50,6 +50,12 @@ fn handle_menu_event<R: Runtime>(app: &AppHandle<R>, item_id: &str) {
         _ => {}
     }
 }
+/// The global chord and the tray item do the same thing, so they share one
+/// implementation rather than drifting apart the way the sidebar buttons did.
+pub fn toggle_recording_from_shortcut<R: Runtime>(app: &AppHandle<R>) {
+    toggle_recording_handler(app);
+}
+
 fn toggle_recording_handler<R: Runtime>(app: &AppHandle<R>) {
     focus_main_window(app);
     let app_clone = app.clone();
@@ -328,8 +334,17 @@ fn build_menu<R: Runtime>(
     } else {
         match state {
             RecordingState::Stopped => {
+                // The chord is named here because a global shortcut nobody
+                // knows about is the same as no shortcut.
                 builder = builder.item(
-                    &MenuItemBuilder::with_id("toggle_recording", "Start Recording").build(app)?,
+                    &MenuItemBuilder::with_id(
+                        "toggle_recording",
+                        format!(
+                            "Start Recording   {}",
+                            crate::global_shortcut::shortcut_label()
+                        ),
+                    )
+                    .build(app)?,
                 );
             }
             RecordingState::Starting => {

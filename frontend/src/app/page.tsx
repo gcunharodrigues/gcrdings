@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { RecordingControls } from '@/components/RecordingControls';
 import { useSidebar } from '@/components/Sidebar/SidebarProvider';
@@ -14,6 +14,8 @@ import { SettingsModals } from './_components/SettingsModal';
 import { TranscriptPanel } from './_components/TranscriptPanel';
 import { useModalState } from '@/hooks/useModalState';
 import { useRecordingStateSync } from '@/hooks/useRecordingStateSync';
+import { useRecordingMarkers } from '@/hooks/useRecordingMarkers';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useRecordingStart } from '@/hooks/useRecordingStart';
 import { useRecordingStop } from '@/hooks/useRecordingStop';
 import { useTranscriptRecovery } from '@/hooks/useTranscriptRecovery';
@@ -21,6 +23,7 @@ import { TranscriptRecovery } from '@/components/TranscriptRecovery';
 import { indexedDBService } from '@/services/indexedDBService';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { log } from '@/lib/logger';
 
 export default function Home() {
   // Local page state (not moved to contexts)
@@ -61,6 +64,18 @@ export default function Home() {
 
   const router = useRouter();
 
+  // ⌘M during a recording flags the moment. Nothing is generated and no model
+  // runs — it is the cheapest way to find a passage again later.
+  const { pending: pendingMarkers, mark } = useRecordingMarkers(
+    recordingState.isRecording,
+    recordingState.activeDuration,
+  );
+
+  useKeyboardShortcuts(
+    useMemo(() => [{ key: 'm', mod: true, handler: () => void mark() }], [mark]),
+    recordingState.isRecording,
+  );
+
   useEffect(() => {
     // Track page view
     Analytics.trackPageView('home');
@@ -76,7 +91,7 @@ export default function Home() {
           status === RecordingStatus.STOPPING ||
           status === RecordingStatus.PROCESSING_TRANSCRIPTS ||
           status === RecordingStatus.SAVING) {
-          console.log('Skipping recovery check - recording in progress or processing');
+          log.debug('Skipping recovery check - recording in progress or processing');
           return;
         }
 
@@ -123,12 +138,12 @@ export default function Home() {
       const result = await recoverMeeting(meetingId);
 
       if (result.success) {
-        toast.success('Meeting recovered successfully!', {
+        toast.success('Session recovered', {
           description: result.audioRecoveryStatus?.status === 'success'
-            ? 'Transcripts and audio recovered'
+            ? 'Transcript and audio recovered'
             : 'Transcripts recovered (no audio available)',
           action: result.meetingId ? {
-            label: 'View Meeting',
+            label: 'Open Session',
             onClick: () => {
               router.push(`/meeting-details?id=${result.meetingId}`);
             }
@@ -144,15 +159,13 @@ export default function Home() {
           sessionStorage.removeItem('recovery_dialog_shown');
         }
 
-        // Auto-navigate after a short delay
-        if (result.meetingId) {
-          setTimeout(() => {
-            router.push(`/meeting-details?id=${result.meetingId}`);
-          }, 2000);
-        }
+        // Navigation is the toast action above and nothing else. A timed
+        // auto-navigate raced that button: clicking it moved the user, then the
+        // timer moved them again, and doing nothing still yanked them off the
+        // page they were reading.
       }
     } catch (error) {
-      toast.error('Failed to recover meeting', {
+      toast.error('Failed to recover the Session', {
         description: error instanceof Error ? error.message : 'Unknown error occurred',
       });
       throw error;
@@ -177,7 +190,7 @@ export default function Home() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="flex flex-col h-screen bg-gray-50"
+      className="flex flex-col h-screen bg-background"
     >
       {/* All Modals supported*/}
       <SettingsModals
@@ -214,7 +227,7 @@ export default function Home() {
                 }}
               >
                 <div className="w-2/3 max-w-[750px] flex justify-center">
-                  <div className="bg-white rounded-full shadow-lg flex items-center">
+                  <div className="bg-card rounded-full shadow-lg flex items-center">
                     <RecordingControls
                       isRecording={recordingState.isRecording}
                       onRecordingStop={(callApi = true) => handleRecordingStop(callApi)}

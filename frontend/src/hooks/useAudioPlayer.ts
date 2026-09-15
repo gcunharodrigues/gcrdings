@@ -4,16 +4,51 @@ import { validateSessionSeek } from "@/lib/session-audio";
 
 export type AudioPlayerStatus = "loading" | "ready" | "unavailable" | "error";
 
+export const PLAYBACK_RATES = [0.75, 1, 1.25, 1.5, 1.75, 2] as const;
+export type PlaybackRate = (typeof PLAYBACK_RATES)[number];
+
+/** Peak amplitude per bucket, 0..1, for the scrub bar. */
+export type Waveform = number[];
+
 export interface SessionAudioPlayer {
   status: AudioPlayerStatus;
   isPlaying: boolean;
   currentTime: number;
   duration: number;
   error: string | null;
+  rate: PlaybackRate;
+  waveform: Waveform;
   play: () => Promise<void>;
   pause: () => void;
   seek: (seconds: number) => void;
   seekAndPlay: (seconds: number) => Promise<boolean>;
+  setRate: (rate: PlaybackRate) => void;
+}
+
+const WAVEFORM_BUCKETS = 220;
+
+/**
+ * Peak per bucket rather than RMS: speech is bursty, and averaging flattens a
+ * recording into a featureless band that tells the reader nothing about where
+ * anyone actually spoke.
+ */
+function computeWaveform(buffer: AudioBuffer): Waveform {
+  const channel = buffer.getChannelData(0);
+  const bucketSize = Math.floor(channel.length / WAVEFORM_BUCKETS) || 1;
+  const peaks: number[] = [];
+
+  for (let bucket = 0; bucket < WAVEFORM_BUCKETS; bucket += 1) {
+    const start = bucket * bucketSize;
+    let peak = 0;
+    for (let i = start; i < start + bucketSize && i < channel.length; i += 1) {
+      const value = Math.abs(channel[i]);
+      if (value > peak) peak = value;
+    }
+    peaks.push(peak);
+  }
+
+  const loudest = Math.max(...peaks, 0.0001);
+  return peaks.map((peak) => peak / loudest);
 }
 
 export function useAudioPlayer(meetingId: string | null): SessionAudioPlayer {
@@ -22,6 +57,9 @@ export function useAudioPlayer(meetingId: string | null): SessionAudioPlayer {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [rate, setRateState] = useState<PlaybackRate>(1);
+  const [waveform, setWaveform] = useState<Waveform>([]);
+  const rateRef = useRef<PlaybackRate>(1);
   const contextRef = useRef<AudioContext | null>(null);
   const bufferRef = useRef<AudioBuffer | null>(null);
   const sourceRef = useRef<AudioBufferSourceNode | null>(null);
@@ -54,6 +92,7 @@ export function useAudioPlayer(meetingId: string | null): SessionAudioPlayer {
     setCurrentTime(0);
     setDuration(0);
     setError(null);
+    setWaveform([]);
     if (!meetingId) {
       setStatus("unavailable");
       return;
@@ -68,6 +107,7 @@ export function useAudioPlayer(meetingId: string | null): SessionAudioPlayer {
         if (generation !== generationRef.current) return;
         bufferRef.current = decoded;
         setDuration(decoded.duration);
+        setWaveform(computeWaveform(decoded));
         setStatus("ready");
       })
       .catch((reason: unknown) => {
@@ -102,9 +142,12 @@ export function useAudioPlayer(meetingId: string | null): SessionAudioPlayer {
       const source = context.createBufferSource();
       const sourceGeneration = ++sourceGenerationRef.current;
       source.buffer = buffer;
+      source.playbackRate.value = rateRef.current;
       source.connect(context.destination);
       sourceRef.current = source;
-      startedAtRef.current = context.currentTime - offset;
+      // Wall-clock advances faster than the track at rate > 1, so the offset has
+      // to be divided by the rate or the position readout drifts.
+      startedAtRef.current = context.currentTime - offset / rateRef.current;
       offsetRef.current = offset;
       setCurrentTime(offset);
       setIsPlaying(true);
@@ -112,7 +155,7 @@ export function useAudioPlayer(meetingId: string | null): SessionAudioPlayer {
 
       const update = () => {
         if (sourceGeneration !== sourceGenerationRef.current) return;
-        const next = Math.min(context.currentTime - startedAtRef.current, buffer.duration);
+        const next = Math.min((context.currentTime - startedAtRef.current) * rateRef.current, buffer.duration);
         offsetRef.current = next;
         setCurrentTime(next);
         frameRef.current = requestAnimationFrame(update);
@@ -172,15 +215,29 @@ export function useAudioPlayer(meetingId: string | null): SessionAudioPlayer {
     return sourceRef.current !== null;
   }, [duration, playFromOffset, status, stopSource]);
 
+  const setRate = useCallback((next: PlaybackRate) => {
+    rateRef.current = next;
+    setRateState(next);
+    // Re-anchor the running source so the position readout stays truthful.
+    const context = contextRef.current;
+    if (sourceRef.current && context) {
+      sourceRef.current.playbackRate.value = next;
+      startedAtRef.current = context.currentTime - offsetRef.current / next;
+    }
+  }, []);
+
   return {
     status,
     isPlaying,
     currentTime,
     duration,
     error,
+    rate,
+    waveform,
     play: playFromOffset,
     pause,
     seek,
     seekAndPlay,
+    setRate,
   };
 }

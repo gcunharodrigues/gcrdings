@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import { useState, useEffect, useRef, ReactNode } from 'react';
 import { isOllamaNotInstalledError } from '@/lib/utils';
 import { BuiltInModelInfo } from '@/lib/builtin-ai';
+import { log } from '@/lib/logger';
 
 interface SummaryGeneratorButtonGroupProps {
   languageSlot?: ReactNode;
@@ -68,7 +69,7 @@ export function SummaryGeneratorButtonGroup({
       // Register our open dialog function with the parent by calling the callback
       // This allows the parent to store a reference to this function
       const openDialog = () => {
-        console.log('📱 Opening model settings dialog via callback');
+        log.debug('📱 Opening model settings dialog via callback');
         setSettingsDialogOpen(true);
       };
 
